@@ -113,6 +113,13 @@ async def task_tool(
         metadata = runtime.config.get("metadata", {})
         parent_model = metadata.get("model_name")
 
+        # Per-conversation subagent model override (set by frontend in Ultra mode).
+        # Lives in metadata only, never in graph state, to avoid the context bug
+        # where state mutation reset thread message history each turn.
+        subagent_model_override = metadata.get("subagent_model_name")
+        if subagent_model_override:
+            overrides["model"] = subagent_model_override
+
         # Get or generate trace_id for distributed tracing
         trace_id = metadata.get("trace_id") or str(uuid.uuid4())[:8]
 

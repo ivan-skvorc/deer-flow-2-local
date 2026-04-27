@@ -119,7 +119,7 @@ export function InputBox({
   disabled?: boolean;
   context: Omit<
     AgentThreadContext,
-    "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled"
+    "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled" | "subagent_model_name"
   > & {
     mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
     reasoning_effort?: "minimal" | "low" | "medium" | "high";
@@ -131,7 +131,7 @@ export function InputBox({
   onContextChange?: (
     context: Omit<
       AgentThreadContext,
-      "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled"
+      "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled" | "subagent_model_name"
     > & {
       mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
       reasoning_effort?: "minimal" | "low" | "medium" | "high";
@@ -144,6 +144,7 @@ export function InputBox({
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
+  const [subagentModelDialogOpen, setSubagentModelDialogOpen] = useState(false);
   const { models } = useModels();
   const { thread, isMock } = useThread();
   const { textInput } = usePromptInputController();
@@ -215,6 +216,34 @@ export function InputBox({
       setModelDialogOpen(false);
     },
     [onContextChange, context, models],
+  );
+
+  const selectedSubagentModel = useMemo(() => {
+    if (!context.subagent_model_name) {
+      return null;
+    }
+    return (
+      models.find((m) => m.name === context.subagent_model_name) ?? null
+    );
+  }, [context.subagent_model_name, models]);
+
+  const sortedSubagentModels = useMemo(() => {
+    // Tool-capable models first, then non-tool models. Stable within each group.
+    const withTools = models.filter((m) => m.supports_tools !== false);
+    const withoutTools = models.filter((m) => m.supports_tools === false);
+    return [...withTools, ...withoutTools];
+  }, [models]);
+
+  const handleSubagentModelSelect = useCallback(
+    (model_name: string) => {
+      // "" is the sentinel for "Follow lead" — backend treats falsy as no-override.
+      onContextChange?.({
+        ...context,
+        subagent_model_name: model_name === "" ? undefined : model_name,
+      });
+      setSubagentModelDialogOpen(false);
+    },
+    [onContextChange, context],
   );
 
   const handleModeSelect = useCallback(
@@ -830,6 +859,73 @@ export function InputBox({
                 </ModelSelectorList>
               </ModelSelectorContent>
             </ModelSelector>
+            {context.mode === "ultra" && (
+              <ModelSelector
+                open={subagentModelDialogOpen}
+                onOpenChange={setSubagentModelDialogOpen}
+              >
+                <ModelSelectorTrigger asChild>
+                  <PromptInputButton>
+                    <div className="flex min-w-0 flex-col items-start text-left">
+                      <span className="text-muted-foreground text-[10px] leading-none">
+                        Subagent
+                      </span>
+                      <ModelSelectorName className="text-xs font-normal">
+                        {selectedSubagentModel?.display_name ?? "Follow lead"}
+                      </ModelSelectorName>
+                    </div>
+                  </PromptInputButton>
+                </ModelSelectorTrigger>
+                <ModelSelectorContent>
+                  <ModelSelectorInput placeholder={t.inputBox.searchModels} />
+                  <ModelSelectorList>
+                    <ModelSelectorItem
+                      key="__follow_lead__"
+                      value=""
+                      onSelect={() => handleSubagentModelSelect("")}
+                    >
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <ModelSelectorName>Follow lead</ModelSelectorName>
+                        <span className="text-muted-foreground truncate text-[10px]">
+                          Use the same model as the lead agent
+                        </span>
+                      </div>
+                      {!context.subagent_model_name ? (
+                        <CheckIcon className="ml-auto size-4" />
+                      ) : (
+                        <div className="ml-auto size-4" />
+                      )}
+                    </ModelSelectorItem>
+                    {sortedSubagentModels.map((m) => {
+                      const noTools = m.supports_tools === false;
+                      return (
+                        <ModelSelectorItem
+                          key={m.name}
+                          value={m.name}
+                          onSelect={() => handleSubagentModelSelect(m.name)}
+                          className={noTools ? "opacity-50" : undefined}
+                        >
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <ModelSelectorName>
+                              {m.display_name}
+                              {noTools ? " (no tools)" : ""}
+                            </ModelSelectorName>
+                            <span className="text-muted-foreground truncate text-[10px]">
+                              {m.model}
+                            </span>
+                          </div>
+                          {m.name === context.subagent_model_name ? (
+                            <CheckIcon className="ml-auto size-4" />
+                          ) : (
+                            <div className="ml-auto size-4" />
+                          )}
+                        </ModelSelectorItem>
+                      );
+                    })}
+                  </ModelSelectorList>
+                </ModelSelectorContent>
+              </ModelSelector>
+            )}
             <PromptInputSubmit
               className="rounded-full"
               disabled={disabled}

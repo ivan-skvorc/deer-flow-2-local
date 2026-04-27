@@ -15,6 +15,10 @@ export interface AgentThreadContext extends Record<string, unknown> {
   thinking_enabled: boolean;
   is_plan_mode: boolean;
   subagent_enabled: boolean;
+  /** Ultra mode: per-conversation subagent model override.
+   *  undefined or "" means "follow lead" — backend treats falsy as no-override.
+   */
+  subagent_model_name?: string;
   reasoning_effort?: "minimal" | "low" | "medium" | "high";
   agent_name?: string;
 }

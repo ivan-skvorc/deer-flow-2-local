@@ -364,11 +364,19 @@ tool_groups:
 # Configure available tools for the agent to use
 
 tools:
-  # Web search tool (uses DuckDuckGo, no API key required)
+  # Web search tool (SearXNG — local metasearch, no API key required, default for this fork)
   - name: web_search
     group: web
-    use: deerflow.community.ddg_search.tools:web_search_tool
+    use: deerflow.community.searxng.tools:web_search_tool
     max_results: 5
+    base_url: http://localhost:8888
+    timeout_seconds: 15
+
+  # Web search tool (DuckDuckGo, no API key required) — alternate; uncomment to switch
+  # - name: web_search
+  #   group: web
+  #   use: deerflow.community.ddg_search.tools:web_search_tool
+  #   max_results: 5
 
   # Web search tool (requires Tavily API key)
   # - name: web_search
@@ -411,7 +419,14 @@ tools:
   # Web fetch tool (uses Jina AI reader)
   - name: web_fetch
     group: web
-    use: deerflow.community.jina_ai.tools:web_fetch_tool
+    use: deerflow.community.camoufox.tools:web_fetch_tool
+    timeout: 10
+    camoufox_timeout: 30
+
+  # Web fetch — Jina AI direct (no stealth fallback). Alternate; uncomment to switch.
+  # - name: web_fetch
+  #   group: web
+  #   use: deerflow.community.jina_ai.tools:web_fetch_tool
     timeout: 10
 
   # Web fetch tool (uses InfoQuest)

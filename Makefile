@@ -68,7 +68,7 @@ check:
 	@$(PYTHON) ./scripts/check.py
 
 # Install all dependencies
-install:
+install: camoufox-fetch
 	@echo "Installing backend dependencies..."
 	@cd backend && uv sync
 	@echo "Installing frontend dependencies..."
@@ -119,7 +119,7 @@ setup-sandbox:
 	fi
 
 # Start all services in development mode (with hot-reloading)
-dev:
+dev: searxng-up sync-ollama
 	@$(PYTHON) ./scripts/check.py
 	@$(RUN_WITH_GIT_BASH) ./scripts/serve.sh --dev
 
@@ -215,3 +215,30 @@ up-pro:
 # Stop and remove production containers
 down:
 	@$(RUN_WITH_GIT_BASH) ./scripts/deploy.sh down
+
+sync-ollama:
+	@python3 scripts/sync-ollama-models.py || true
+.PHONY: sync-ollama
+
+searxng-up:
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "[searxng] docker not found — skipping (web_search will return errors until SearXNG is reachable)"; \
+	elif ! docker info >/dev/null 2>&1; then \
+		echo "[searxng] docker daemon not reachable — skipping"; \
+	elif docker ps --format '{{.Names}}' | grep -q '^deerflow-searxng$$'; then \
+		echo "[searxng] already running"; \
+	else \
+		echo "[searxng] starting..."; \
+		docker compose -f docker/searxng/docker-compose.yml up -d; \
+	fi
+.PHONY: searxng-up
+
+searxng-down:
+	@docker compose -f docker/searxng/docker-compose.yml down 2>/dev/null || true
+.PHONY: searxng-down
+
+camoufox-fetch:
+	@echo "[camoufox] downloading stealth Firefox (one-time, ~150 MB)..."
+	@cd backend && uv run camoufox fetch || \
+		echo "[camoufox] fetch failed (offline? blocked?) — fallback web_fetch will be unavailable until you run \`make camoufox-fetch\` again"
+.PHONY: camoufox-fetch

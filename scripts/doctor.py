@@ -629,6 +629,100 @@ def check_env_file(project_root: Path) -> CheckResult:
 # Main
 # ---------------------------------------------------------------------------
 
+def check_ollama() -> CheckResult:
+    """Probe the Ollama daemon. Warn (not fail) — Ollama is optional."""
+    import json
+    import urllib.error
+    import urllib.request
+
+    host = os.environ.get("OLLAMA_HOST", "127.0.0.1:11434")
+    base = host if host.startswith(("http://", "https://")) else f"http://{host}"
+    url = f"{base}/api/tags"
+    try:
+        with urllib.request.urlopen(url, timeout=3) as r:
+            data = json.loads(r.read())
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError) as e:
+        return CheckResult(
+            "Ollama daemon",
+            "warn",
+            f"unreachable at {base}",
+            fix=(
+                "Start Ollama: `ollama serve` (or enable the systemd service).\n"
+                "If you're cloud-only, ignore this — Ollama is optional."
+            ),
+        )
+    except json.JSONDecodeError:
+        return CheckResult("Ollama daemon", "warn", "non-JSON response from /api/tags")
+    count = len((data or {}).get("models") or [])
+    if count == 0:
+        return CheckResult(
+            "Ollama daemon",
+            "warn",
+            "reachable, no models pulled",
+            fix="Pull a model: `ollama pull qwen3:32b` (or any other tool-capable model)",
+        )
+    return CheckResult("Ollama daemon", "ok", f"{count} model(s) available")
+
+
+def check_searxng() -> CheckResult:
+    """Probe the local SearXNG container. Warn — without it, web_search returns errors."""
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    base = "http://localhost:8888"
+    url = f"{base}/search?{urllib.parse.urlencode({'q': 'test', 'format': 'json'})}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "DeerFlow/doctor",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=3) as r:
+            data = json.loads(r.read())
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError):
+        return CheckResult(
+            "SearXNG",
+            "warn",
+            f"unreachable at {base}",
+            fix=(
+                "Start it: `make searxng-up` (Docker required).\n"
+                "Or switch web_search to ddg/tavily in config.yaml."
+            ),
+        )
+    except json.JSONDecodeError:
+        return CheckResult("SearXNG", "warn", "non-JSON response — JSON format may be disabled")
+    n = len((data or {}).get("results") or [])
+    return CheckResult("SearXNG", "ok", f"reachable, sample query returned {n} result(s)")
+
+
+def check_camoufox() -> CheckResult:
+    """Verify the camoufox package is installed and the browser is downloaded."""
+    try:
+        import_module("camoufox")
+    except ImportError:
+        return CheckResult(
+            "Camoufox",
+            "warn",
+            "package not installed",
+            fix="Run `make install` (or `cd backend && uv sync`)",
+        )
+    # Check for the downloaded browser. Camoufox stores it under XDG cache.
+    cache_root = Path(os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache"))
+    camo_dir = cache_root / "camoufox"
+    if not camo_dir.exists() or not any(camo_dir.iterdir()):
+        return CheckResult(
+            "Camoufox",
+            "warn",
+            "package present, browser not downloaded",
+            fix="Run `make camoufox-fetch` (downloads ~150 MB once)",
+        )
+    return CheckResult("Camoufox", "ok", "package + browser ready")
+
+
 def main() -> int:
     project_root = Path(__file__).resolve().parents[1]
     config_path = project_root / "config.yaml"
@@ -679,6 +773,9 @@ def main() -> int:
     sections.append(("LLM Provider", llm_checks))
 
     # ── Web Capabilities ─────────────────────────────────────────────────────
+    local_stack_checks = [check_ollama(), check_searxng(), check_camoufox()]
+    sections.append(("Local Internet Stack", local_stack_checks))
+
     search_checks = [check_web_search(config_path), check_web_fetch(config_path)]
     sections.append(("Web Capabilities", search_checks))
 

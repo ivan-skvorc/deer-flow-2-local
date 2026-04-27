@@ -317,6 +317,9 @@ def make_lead_agent(config: RunnableConfig):
     is_plan_mode = cfg.get("is_plan_mode", False)
     subagent_enabled = cfg.get("subagent_enabled", False)
     max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
+    # Per-conversation subagent model override (Ultra-mode dropdown).
+    # None or "" means "follow lead" — task_tool.py treats falsy as no-override.
+    subagent_model_name = cfg.get("subagent_model_name") or None
     is_bootstrap = cfg.get("is_bootstrap", False)
     agent_name = validate_agent_name(cfg.get("agent_name"))
 
@@ -355,6 +358,7 @@ def make_lead_agent(config: RunnableConfig):
         {
             "agent_name": agent_name or "default",
             "model_name": model_name or "default",
+            "subagent_model_name": subagent_model_name,
             "thinking_enabled": thinking_enabled,
             "reasoning_effort": reasoning_effort,
             "is_plan_mode": is_plan_mode,

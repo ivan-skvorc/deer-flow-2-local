@@ -60,3 +60,8 @@ config.yaml.bak
 /frontend/playwright-report/
 .gstack/
 .worktrees
+config.yaml.before-fork-edits
+
+# Local-only backup files (never commit)
+*.bak
+*.bak[0-9]

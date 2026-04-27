@@ -1,0 +1,27 @@
+# Minimal SearXNG config tuned for programmatic use by DeerFlow.
+# JSON API enabled. No bot detection. Safe-search off (DeerFlow handles
+# safety upstream). General web search; no maps/music/videos categories.
+use_default_settings: true
+
+general:
+  instance_name: "DeerFlow SearXNG"
+
+server:
+  # NOTE: this secret is irrelevant for a localhost-only instance with no
+  # users and no public exposure. If you ever expose this beyond loopback,
+  # regenerate it.
+  secret_key: "deerflow-localhost-only-not-a-real-secret"
+  limiter: false
+  image_proxy: false
+  http_protocol_version: "1.1"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+  formats:
+    - html
+    - json
+
+ui:
+  static_use_hash: true
