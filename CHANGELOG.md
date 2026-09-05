@@ -527,6 +527,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sidebar:** **The button that creates a chat folder now sits beside the
+  "Recent chats" heading, and exists before the first conversation does.** It
+  was a borderless 16px icon pinned to the far right edge of the sidebar —
+  roughly 150px from the words it belongs to, alongside the scrollbar — so a
+  reader looking beside the heading found nothing and the only entry point to
+  folders read as chrome. Worse, the whole group returned `null` until a
+  conversation existed, so on a fresh workspace the control was not merely hard
+  to see but absent, and a folder could never be created there at all. The `+`
+  now renders inside the group's own label row, next to the text, with a hover
+  and focus affordance, and the header renders whether or not there is anything
+  under it yet.
+
 - **ci:** **A hiccup downloading pnpm no longer fails a frontend job.** Every
   frontend workflow starts by having corepack fetch the pinned pnpm from the npm
   registry, unretried. A transient abort mid-download does not surface as a

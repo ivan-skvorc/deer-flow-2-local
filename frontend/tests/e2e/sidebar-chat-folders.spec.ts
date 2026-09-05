@@ -73,6 +73,51 @@ async function openFolderMenu(page: Page, name: string) {
 }
 
 test.describe("Sidebar chat folders", () => {
+  // The `+` is the only way into the feature, so where it sits *is* the
+  // feature's front door. Parked at the far right edge of the sidebar, a
+  // borderless 16px icon a hundred and fifty pixels from the words it belongs
+  // to reads as chrome, and a reader who looks beside "Recent chats" finds
+  // nothing there. Geometry is the property — being in the DOM is not being
+  // findable — so this measures the gap rather than asserting a class.
+  test("the new-folder button sits beside the group's label", async ({
+    page,
+  }) => {
+    mockLangGraphAPI(page, { threads: THREADS });
+    await page.goto("/workspace/chats/new");
+    await expect(chatRow(page, FIRST_THREAD_ID)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const button = page.getByTestId("chat-folder-create");
+    await expect(button).toBeVisible();
+    const labelBox = await page.getByTestId("recent-chats-label").boundingBox();
+    const buttonBox = await button.boundingBox();
+    if (!labelBox || !buttonBox) {
+      throw new Error("the group label or its create button has no box");
+    }
+
+    const gap = buttonBox.x - (labelBox.x + labelBox.width);
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThan(24);
+    const centreOffset = Math.abs(
+      buttonBox.y + buttonBox.height / 2 - (labelBox.y + labelBox.height / 2),
+    );
+    expect(centreOffset).toBeLessThan(4);
+  });
+
+  // The group used to render nothing at all until a conversation existed, so
+  // the one control that creates a folder was missing on exactly the workspace
+  // where someone would first go looking for it.
+  test("a folder can be created before there are any conversations", async ({
+    page,
+  }) => {
+    mockLangGraphAPI(page, { threads: [] });
+    await page.goto("/workspace/chats/new");
+
+    await createFolder(page, "Work");
+    await expect(page.getByTestId("chat-folder-count")).toHaveText("0");
+  });
+
   test("a chat dragged into a folder lives inside it and nowhere else", async ({
     page,
   }) => {
