@@ -11,6 +11,81 @@ Newest first. Append a pass; never rewrite one. A dated line is what tells the
 next person whether the roster was checked last week or last year, and _which_
 providers that pass could actually reach.
 
+- **2026-09-05 (fourth pass, requested inside a change-cycle run) — Anthropic re-verified at
+  tier 1; the four figures owed since 2026-08-20 finally corroborated and all four match what
+  ships; no config change.** This is the first pass in this environment with a working **web
+  search**, so tier 2 was actually available — the three earlier passes today had a reachable
+  provider page for Anthropic and nothing else at all, which is why they could only leave every
+  other lab alone. Nothing changed in either synced source; the value of the pass is that four
+  entries stopped being provisional and two new flagships were judged rather than missed.
+
+  **Reachability.** `platform.claude.com` serves (`docs.claude.com` 302s to it). `openrouter.ai`,
+  `www.anthropic.com`, `ai.google.dev` and `developers.openai.com` are all refused at the egress
+  proxy, and `scripts/audit_models.py` reports the OpenRouter catalog as **skipped** (403 on
+  CONNECT), correctly not as drift. Anthropic is therefore tier 1; every other lab is tier 2
+  (independent sources that agree exactly) or tier 3 (left alone).
+
+  **Machine half clean.** `scripts/audit_models.py` — no drift, no price in any `display_name`,
+  the two synced sources agree. The stale-fixture self-test
+  (`--catalog scripts/fixtures/model_audit_stale_catalog.json`) still surfaces all four drift
+  kinds, so the audit itself is not silently broken. `sync-api-key-models.py --dry-run` is a
+  clean no-op.
+
+  **Anthropic — tier 1, all six entries re-read off the provider's own table today.** Fable 5.1
+  `$10/$50` (cache read `$0.25`), Opus 5 `$5/$25` (`$0.50`), Opus 4.8 `$5/$25` (`$0.50`),
+  Sonnet 5 `$2/$10` (`$0.20`), Sonnet 4.6 `$3/$15` (`$0.30`), Haiku 4.5 `$1/$5` (`$0.10`) —
+  every figure matches both synced sources. Fable 5.1's `0.025x` cache-read exception is still
+  stated as an exception on the page, and the note making Sonnet 5's `$2/10` permanent is still
+  there. **Claude Mythos 5.1** now appears on that table and **stays out of the bundle** for the
+  same reason Mythos 5 does: limited availability, so a normal `ANTHROPIC_API_KEY` cannot reach
+  it.
+
+  **The four corroborated-from-2026-08-20 figures are now corroborated a second time, by a
+  different pass, from different sources — and all four match what ships.** Grok 4.6 `$2/$6`
+  (base tier; the ≥200K-token tier is `$4/$12`, and the bundle deliberately carries the base
+  rate), Qwen3.8 Max `$2/$6`, GLM-5.3 `$1.4/$4.4`, Mistral Medium 3.5 `$1.5/$7.5`. Also
+  re-confirmed: Gemini 3.1 Pro `$2/$12` (the one figure the 2026-09-02 pass changed), Kimi K3
+  `$3/$15`, GPT-5.6 Sol `$5/$30`. None of these is verified — the labs' own pages are still
+  unreachable — but each is now two independent corroborations apart from the entry that shipped
+  them, which is the strongest state this environment can reach.
+
+  **One disagreement, so nothing moved: DeepSeek V4 Pro.** The bundle ships `$1.32/$3.96` (home,
+  peak, with off-peak `$0.66/$1.98` noted in the comment) and `$0.44/$0.87` on OpenRouter. The
+  sources read this pass do **not** agree with each other: one states `$1.74/$3.48` as the
+  standard rate, another the off-peak `$0.66/$1.98` that matches the shipped comment exactly.
+  Two sources that differ mean the price is unknown, which is a stop rather than a judgement
+  call — entry left exactly as shipped, and named here so the next pass that can open DeepSeek's
+  own page starts with it.
+
+  **Two new candidates, both declined this pass, with the condition that would reverse each.**
+
+  - **GPT-6 Astra (OpenAI, announced 2026-09-03, slug `gpt-6-astra`, `$10/$50` corroborated).**
+    Declined **for now on availability, not on merit**: the rollout is staged — API access had
+    not opened broadly at the time of this pass — which is the same rule that keeps Mythos out
+    of the Anthropic block. A model a normal `OPENAI_API_KEY` cannot call is worse than a
+    generation-behind flagship, because it fails at request time. When general API access is
+    confirmed this is a straight flagship roll-forward against GPT-5.6 Sol in both synced
+    sources, and it re-appears as a `new_candidate` until 2026-11-02 on its own.
+  - **Gemini 3.7 Flash (released 2026-08-13, standard `$1.50/$7.50`, introductory `$0.75/$3.75`
+    through 2026-12-31).** Deferred again, for the same reason the 2026-09-02 pass gave and now
+    with the figures corroborated: tier 2 forbids shipping a discount, so bundling it would mean
+    carrying the post-window standard rate and over-reporting its real cost roughly 2x until
+    2027. Its standard price is identical to the Gemini 3.6 Flash entry already shipped, so the
+    only thing deferring costs is a generation on the cheap tier. Still needs a pass that can
+    read Google's own page.
+
+  **A lead, deliberately not acted on: GPT-5.6 Sol may be discounted.** Secondary sources
+  describe a promotional `$4/$20` through 2026-11-21 against the verified-as-standard `$5/$30`.
+  A discount never qualifies for corroboration, so nothing was shipped; the entry keeps its
+  standard rate, which is the conservative direction. Check it on the next pass that can reach
+  OpenAI's page.
+
+  **Still owed to the next unrestricted pass**, in priority order: DeepSeek V4 Pro's peak rate
+  (the disagreement above), GPT-6 Astra's API availability, the GPT-5.6 Sol promo, the Gemini
+  3.7 Flash roster decision, and MiniMax M3's OpenRouter promo status — still unchecked, since
+  OpenRouter has now been unreachable for every pass since 2026-08-22. Google also remains the
+  one lab whose OpenRouter double is a cheaper sibling rather than its flagship.
+
 - **2026-09-05 (third pass, requested on its own) — Anthropic re-verified at tier 1; no roster
   or price change, but three documentation drifts found and fixed, one of them a real one.**
   Run because it was asked for. The two earlier passes today both concentrated on prices; this

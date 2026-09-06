@@ -40,7 +40,6 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
@@ -685,31 +684,39 @@ export function RecentChatList() {
     [handleMoveToFolder],
   );
 
-  // A folder with nothing in it is still a folder: keep the group rendered so
-  // it does not disappear the moment it is created on an empty workspace.
-  if (threads.length === 0 && folders.length === 0) {
-    return null;
-  }
+  // The group renders even with nothing under it. It is the only way into the
+  // feature — the `+` that creates a folder lives in this header — and a
+  // workspace with no conversations yet is exactly where someone goes looking
+  // for it. Returning null here made the control unreachable until a chat
+  // existed, and took a just-created empty folder down with it.
   const isStaticWebsite = env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true";
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel>
-          {!isStaticWebsite ? t.sidebar.recentChats : t.sidebar.demoChats}
+        <SidebarGroupLabel className="gap-1">
+          <span data-testid="recent-chats-label">
+            {!isStaticWebsite ? t.sidebar.recentChats : t.sidebar.demoChats}
+          </span>
+          {/* Beside the words, not pinned to the far edge of the sidebar: this
+              is the only entry point to folders, and as an unlabelled icon a
+              sidebar-width away from its own heading it read as chrome and was
+              never found. */}
+          {!isStaticWebsite && (
+            <button
+              className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ring-sidebar-ring flex size-5 shrink-0 items-center justify-center rounded-md outline-hidden transition-colors focus-visible:ring-2"
+              data-testid="chat-folder-create"
+              onClick={() => {
+                setFolderNameValue("");
+                setFolderDialog({ mode: "create" });
+              }}
+              title={t.chats.folders.new}
+              type="button"
+            >
+              <FolderPlus className="size-4" />
+              <span className="sr-only">{t.chats.folders.new}</span>
+            </button>
+          )}
         </SidebarGroupLabel>
-        {!isStaticWebsite && (
-          <SidebarGroupAction
-            data-testid="chat-folder-create"
-            onClick={() => {
-              setFolderNameValue("");
-              setFolderDialog({ mode: "create" });
-            }}
-            title={t.chats.folders.new}
-          >
-            <FolderPlus />
-            <span className="sr-only">{t.chats.folders.new}</span>
-          </SidebarGroupAction>
-        )}
         <SidebarGroupContent className="group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0">
           <SidebarMenu>
             {folderLists.length > 0 && (
