@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Archive,
   Download,
   FileJson,
   FileText,
@@ -87,6 +88,7 @@ import { cn } from "@/lib/utils";
 import { ChatFolderRow } from "./chat-folder-row";
 import { ThreadChannelIcon } from "./thread-channel-source";
 import { VirtualThreadList } from "./thread-list-virtualizer";
+import { useThreadArchiveAction } from "./use-thread-archive-action";
 
 type BranchList = {
   entriesById: Map<string, ThreadBranchEntry>;
@@ -125,6 +127,7 @@ type FolderDialogState =
 
 export function RecentChatList() {
   const { t } = useI18n();
+  const archiveAction = useThreadArchiveAction();
   const router = useRouter();
   const pathname = usePathname();
   const { thread_id: threadIdFromPath, agent_name: agentNameFromPath } =
@@ -137,7 +140,10 @@ export function RecentChatList() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteThreads();
+  } = useInfiniteThreads({
+    archived:
+      env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" ? undefined : false,
+  });
   const threadListModel = useMemo(
     () => buildThreadListModel(infiniteThreads?.pages ?? []),
     [infiniteThreads?.pages],
@@ -637,6 +643,15 @@ export function RecentChatList() {
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                <DropdownMenuItem
+                  disabled={archiveAction.isPending}
+                  onSelect={() =>
+                    archiveAction.setArchived(thread.thread_id, true)
+                  }
+                >
+                  <Archive className="text-muted-foreground" />
+                  <span>{t.chats.archiveChat}</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => handleDelete(thread)}>
                   <Trash2 className="text-muted-foreground" />
@@ -649,6 +664,7 @@ export function RecentChatList() {
       );
     },
     [
+      archiveAction,
       chatTabs,
       folders,
       handleDelete,

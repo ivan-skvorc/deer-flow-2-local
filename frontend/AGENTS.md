@@ -114,12 +114,36 @@ totals with `performance-budgets.json`. Fix route ownership or split points when
 budget fails; do not raise a ceiling without documenting and reviewing the measured
 regression.
 
+Chat archive is a thread metadata flag (`deerflow_archived === true`), independent
+of run status. Sidebar and Chats explicitly request the Gateway's optional
+`archived` filter through `searchThreadsByArchive`; the SDK drops this extension,
+so use the authenticated REST fetcher. Static demos retain SDK fixture queries.
+`core/threads/archive.ts` waits for the write, cancels stale reads, merges only the
+owned flag into metadata snapshots, then restarts metadata reads and resets list
+pagination. Keep both default and Custom Agent header restore controls in sync.
+Pin/archive responses must not merge unrelated metadata flags: out-of-order
+organization requests can otherwise roll back each other's confirmed state.
+Run-created optimistic snapshots have no archive flag: refresh archive-filtered
+lists from the server instead of inserting those snapshots into either view.
+
 ## Fork-specific frontend features
 
 This fork adds the keep-alive chat tab strip, the spend page, the PWA shell and
 Web Push, the model-picker sort/group controls, and the cost overview in the
 chat header. They are documented in **[FORK.md](../FORK.md)**, which also names
 the tests pinning each; `src/AGENTS.md` carries the code-adjacent notes.
+
+**No image-generation entry in the sidebar.** `workspace-header.tsx` carries
+exactly two entries under _New chat_: Democracy, and nothing else. Image
+generation still works — the media tools are bound, `/workspace/image/new`
+still renders, and asking for a picture in chat is unchanged — but the feature
+is deliberately **unadvertised** (FORK.md §26), because the entry appeared on
+every install including the many with no GPU behind it. Re-adding a
+`SidebarMenuButton` pointing at `/workspace/image` compiles, type-checks and
+renders perfectly, so the only thing standing between that and a silent revert
+is `tests/unit/components/workspace/workspace-header.dom.test.tsx`, which
+asserts on the link's **route** rather than its label. If you need the entry
+back, change the test in the same commit so the decision is visible.
 
 **One model picker, everywhere.** Selecting a model is
 `components/workspace/model-select.tsx` (`ModelSelect`) — or, inside the

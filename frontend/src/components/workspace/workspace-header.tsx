@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageIcon, MessageSquarePlus, UsersRoundIcon } from "lucide-react";
+import { MessageSquarePlus, UsersRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -79,21 +79,13 @@ export function WorkspaceHeader({ className }: { className?: string }) {
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
-        {/* Image generation is the third entry for the same reason Democracy is
-            the second: it starts a conversation, and the shape of that first
-            turn (image or clip, size, whether to iterate) is decided on a page
-            before any GPU time is spent — a clip is minutes per attempt. */}
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={pathname.startsWith("/workspace/image")}
-            asChild
-          >
-            <Link className="text-muted-foreground" href="/workspace/image/new">
-              <ImageIcon size={16} />
-              <span>{t.imageGeneration.launch}</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        {/* No image-generation entry here, deliberately. Generation still
+            works — the media tools stay bound and `/workspace/image/new`
+            still renders — but the feature is no longer advertised in the
+            sidebar or the README, so the shop window does not promise a GPU
+            this install may not have. Re-adding a SidebarMenuButton pointing
+            at `/workspace/image` is how that decision gets silently undone,
+            which is what `workspace-header.dom.test.tsx` watches for. */}
       </SidebarMenu>
     </>
   );

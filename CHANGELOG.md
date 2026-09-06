@@ -505,6 +505,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **ui:** **Image generation is no longer advertised.** The sidebar's third
+  entry, beside _New chat_ and _Democracy_, is gone, and so are the feature's
+  README bullet and its **Local Image and Video Generation** section. Nothing
+  behind it was switched off: the five `media` tools stay bound, the launch
+  paths still resolve-or-provision ComfyUI, `make comfy-*` still works, and
+  `/workspace/image/new` still renders for anyone who navigates to it — asking
+  for a picture in chat is unchanged. What changed is what the fork *offers*.
+  The entry sat third in the sidebar of every install, including the ones with
+  no GPU and no reachable ComfyUI, where the only honest outcome behind it is
+  the cloud fallback. This is the kind of decision that reverts itself in
+  silence — a re-added `SidebarMenuButton` compiles, type-checks and renders
+  correctly — so `frontend/tests/unit/components/workspace/workspace-header.dom.test.tsx`
+  asserts on the **route** (`/workspace/image`), not the label, and the §26
+  checklist row now carries it.
+
+- **sync:** **Merged 18 upstream commits.** User-visible pickups: **archive and
+  restore** for conversations (a metadata flag independent of run status, with
+  its own sidebar action and filter), per-conversation **custom agent selection**
+  in IM channels, read-only **LightRAG** retrieval as an alternative
+  `knowledge_search` provider, and an optional **Parallel Search** MCP server.
+  Fixes: an owned LLM recovery probe leaking on cancellation, embedded agent
+  reuse now scoped by effective user, `llm.ai.response` no longer persisted
+  twice on a re-fired `on_llm_end`, memory backend read failures enforced rather
+  than swallowed, private ACLs on the Lark credential tree under Windows, and
+  terminal signalling finishing after hook cancellation. Three fork resolutions
+  worth naming: the fork's `_UI_PLACEMENT_METADATA_GUARDS` absorbed upstream's
+  archive flag rather than being replaced by its unguarded `set(...) <= {...}`
+  predicate (the per-key shape guard is what stops any client editing metadata
+  without touching recency), upstream's inline sidebar row was folded back into
+  the fork's `renderThreadRow` helper so folders and the root list keep one
+  renderer, and upstream's newly active DuckDuckGo `web_search` entry was
+  dropped in favour of this fork's SearXNG default — duplicate tool names keep
+  the first entry, so shipping both would have silently switched web search
+  over.
+
 - **sync:** **Merged 14 upstream commits.** User-visible pickups: an
   approval-gated **controlled egress** mode for the AIO sandbox (an
   egress-controlled internal network plus a relay proxy, `sandbox.network`),
