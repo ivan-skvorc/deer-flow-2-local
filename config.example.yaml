@@ -48,8 +48,8 @@ logging:
 # lead-only vs subagent-only configuration is not expressible yet. Treat these
 # files as trusted operator config because middleware classes execute code.
 # Uncomment this block to define middlewares in config.yaml. Leaving it commented
-# lets extensions_config.json remain the source of truth for this legacy
-# config-declared middleware list. Packaged plugins use the `plugins:` block below.
+# lets extensions_config.json remain the source of truth for this fixed-slot
+# (not deprecated) middleware list. Packaged plugins use the `plugins:` block below.
 # extensions:
 #   middlewares:
 #     - my_company.deerflow_middlewares:DomainGuardMiddleware
@@ -261,17 +261,18 @@ models:
   # and uncomments the matching block below:
   #   ANTHROPIC_API_KEY  -> Claude Fable 5.1 / Opus 5 / Opus 4.8 / Sonnet 5 /
   #                         Sonnet 4.6 / Haiku 4.5 (direct Anthropic API)
-  #   OPENROUTER_API_KEY -> Claude Fable 5.1 / Grok 4.6 /
-  #                         GPT-5.6 Sol / GPT-5.3 Codex / Gemini 3.6 Flash /
-  #                         Llama 4 Maverick / MiniMax M3 / Qwen3.8 Max /
+  #   OPENROUTER_API_KEY -> Claude Fable 5.1 / Claude Opus 5 / Grok 4.6 /
+  #                         GPT-6 Astra / GPT-5.6 Sol / GPT-5.3 Codex /
+  #                         Gemini 3.6 Flash / Llama 4 Maverick /
+  #                         MiniMax M3 / Qwen3.8 Max /
   #                         Kimi K3 / Mistral Large 3 / DeepSeek V4 Pro /
   #                         GLM-5.3 / Nemotron 3 Ultra
   #                         (via OpenRouter)
   # Each big-name lab that ships its own API also has a first-party "home" block,
   # enabled when THAT lab's key is present, carrying the lab's full lineup on its
   # direct API (see the "FIRST-PARTY HOME API BLOCKS" section after OpenRouter):
-  #   OPENAI_API_KEY     -> GPT-5.6 Sol / GPT-5.3 Codex / GPT-5.6 Terra /
-  #                         GPT-5.6 Luna (OpenAI)
+  #   OPENAI_API_KEY     -> GPT-6 Astra / GPT-5.6 Sol / GPT-5.3 Codex /
+  #                         GPT-5.6 Terra / GPT-5.6 Luna (OpenAI)
   #   XAI_API_KEY        -> Grok 4.6 / Grok 4.3 (xAI)
   #   GEMINI_API_KEY     -> Gemini 3.6 Flash / 3.5 Flash-Lite / 3.1 Pro (Google)
   #   DEEPSEEK_API_KEY   -> DeepSeek V4 Pro / V4 Flash (DeepSeek)
@@ -478,9 +479,15 @@ models:
   # ── OpenRouter — auto-enabled when OPENROUTER_API_KEY is set ───────────────
   # One key, every provider. Model ids are OpenRouter slugs (provider/model),
   # routed through the standard OpenAI-compatible ChatOpenAI + base_url pattern.
-  # The set below is Claude Fable (the flagship, also offered here for OpenRouter-
-  # only users — every other Claude lives on the direct Anthropic block above)
-  # plus the current xAI / OpenAI / Google / Meta flagships and strong open
+  # The set below is one flagship per lab, routed for OpenRouter-only users, with
+  # two deliberate exceptions where the lab's top tier is really two models at
+  # two very different prices: Anthropic ships **Fable 5.1 and Opus 5** here, and
+  # OpenAI ships **GPT-6 Astra and GPT-5.6 Sol**. Routing only the dearer of each
+  # pair charged an OpenRouter-only user 2x for work the cheaper one does, and
+  # routing only the cheaper one put the lab's best model out of reach on that
+  # key — so both travel. Every other Claude still lives on the direct Anthropic
+  # block above. Alongside those: the current xAI / Google / Meta flagships,
+  # GPT-5.3 Codex (an acclaimed sibling, not a flagship), and strong open
   # alternatives (MiniMax, Qwen, Kimi, Mistral, DeepSeek, GLM, Nemotron).
   #
   # Display-name markers on these OpenRouter entries:
@@ -523,6 +530,22 @@ models:
   #     input: 10.0
   #     output: 50.0
   #
+  # - name: openrouter-opus-5
+  #   display_name: Claude Opus 5 (OpenRouter) (p)
+  #   use: langchain_openai:ChatOpenAI
+  #   model: anthropic/claude-opus-5
+  #   api_key: $OPENROUTER_API_KEY
+  #   base_url: https://openrouter.ai/api/v1
+  #   request_timeout: 600.0
+  #   max_retries: 2
+  #   max_tokens: 32000
+  #   supports_vision: true
+  #   supports_thinking: true
+  #   price:                          # per 1M tokens; the single source of truth for cost display and budgets
+  #     currency: USD
+  #     input: 5.0
+  #     output: 25.0
+  #
   # - name: openrouter-grok-4.6
   #   display_name: Grok 4.6 (OpenRouter) (p)
   #   use: langchain_openai:ChatOpenAI
@@ -538,6 +561,22 @@ models:
   #     currency: USD
   #     input: 2.0
   #     output: 6.0
+  #
+  # - name: openrouter-gpt-6-astra
+  #   display_name: GPT-6 Astra (OpenRouter) (p)
+  #   use: langchain_openai:ChatOpenAI
+  #   model: openai/gpt-6-astra
+  #   api_key: $OPENROUTER_API_KEY
+  #   base_url: https://openrouter.ai/api/v1
+  #   request_timeout: 600.0
+  #   max_retries: 2
+  #   max_tokens: 32000
+  #   supports_vision: true
+  #   supports_thinking: true
+  #   price:                          # per 1M tokens; the single source of truth for cost display and budgets
+  #     currency: USD
+  #     input: 10.0
+  #     output: 50.0
   #
   # - name: openrouter-gpt-5.6-sol
   #   display_name: GPT-5.6 Sol (OpenRouter) (p)
@@ -752,6 +791,22 @@ models:
   # The startup auto-config (scripts/sync-api-key-models.py) uncomments the
   # entries below when it finds a real OPENAI_API_KEY in your .env.
   # === BEGIN auto-model-config: openai (uncommented at startup when OPENAI_API_KEY is set) ===
+  # - name: openai-gpt-6-astra
+  #   display_name: GPT-6 Astra (OpenAI)
+  #   use: langchain_openai:ChatOpenAI
+  #   model: gpt-6-astra
+  #   api_key: $OPENAI_API_KEY
+  #   base_url: https://api.openai.com/v1
+  #   request_timeout: 600.0
+  #   max_retries: 2
+  #   max_tokens: 32000
+  #   supports_vision: true
+  #   supports_thinking: true
+  #   price:                          # per 1M tokens; the single source of truth for cost display and budgets
+  #     currency: USD
+  #     input: 10.0
+  #     output: 50.0
+  #
   # - name: openai-gpt-5.6-sol
   #   display_name: GPT-5.6 Sol (OpenAI)
   #   use: langchain_openai:ChatOpenAI
@@ -2092,6 +2147,28 @@ tools:
   #   similarity_threshold: 0.2
   #   vector_similarity_weight: 0.3
   #   top_k: 256
+  #   max_chars_per_chunk: 800
+  #   max_total_chars: 8000
+
+  # LightRAG knowledge retrieval (read-only). Alternative provider for the same
+  # knowledge_search tool; uncomment this entry instead of the RAGFlow one —
+  # duplicate names keep the first entry, so configure exactly one. Requires
+  # LightRAG v1.4.9+ (response envelope and citation fields). Searches the deployment's
+  # single indexed workspace through the data retrieval endpoint (no LLM
+  # generation inside LightRAG). `api_key` is optional; only omit it for
+  # loopback/trusted-network servers — when auth is enabled the key is sent as
+  # the X-API-Key header. `mode` picks the retrieval strategy: naive, local,
+  # global, hybrid, or mix (default mix, matching LightRAG's own default).
+  # Internal chunk and reference identifiers never reach the model.
+  # - name: knowledge_search
+  #   group: knowledge
+  #   use: deerflow.community.lightrag.tools:knowledge_search_tool
+  #   base_url: http://localhost:9621  # Docker: use a backend-reachable URL
+  #   api_key: $LIGHTRAG_API_KEY  # Omit only for unauthenticated trusted servers
+  #   mode: mix
+  #   timeout: 30
+  #   top_k: 60
+  #   chunk_top_k: 8  # Optional; omit to use the server default
   #   max_chars_per_chunk: 800
   #   max_total_chars: 8000
 

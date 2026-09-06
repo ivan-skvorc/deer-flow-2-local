@@ -11,6 +11,131 @@ Newest first. Append a pass; never rewrite one. A dated line is what tells the
 next person whether the roster was checked last week or last year, and _which_
 providers that pass could actually reach.
 
+- **2026-09-06 (second pass, same change-cycle run) — the doubling rule gains two named
+  exceptions, and the roster grows by three: Opus 5 routed, GPT-6 Astra routed and direct.**
+  Requested in words by the maintainer after reading the earlier pass. This one **changes both
+  synced sources**, so it is a roster edit, not just a reading.
+
+  **The rule that changed.** Step 3 used to say a lab is doubled by putting *its flagship* on
+  OpenRouter. It now says that, plus: **Anthropic routes Fable 5.1 _and_ Opus 5, OpenAI routes
+  GPT-6 Astra _and_ GPT-5.6 Sol.** The argument is the shape of those two labs' top tier — it is
+  really two models a factor of two apart (`$10/$50` beside `$5/$25`, `$10/$50` beside `$5/$30`)
+  — and either half alone fails an OpenRouter-only user invisibly: route only the dearer and
+  every routed task bills at roughly twice what the cheaper sibling would have charged for most
+  of it, route only the cheaper and the lab's best model is simply unreachable on that key. This
+  is an exception about the *shape of a lab's top tier*, not a licence to route two of
+  everything; a third entry in either pair needs the argument made again.
+  `TestFirstPartyKeyCoverage::test_the_paired_labs_route_both_halves` and
+  `test_a_paired_lab_routes_both_halves_from_its_own_home_block` pin both pairs by slug, so a
+  roll-forward that upgrades one half and forgets the other fails loudly. The same edit records
+  what was already true and undocumented: the routed slot need **not** be a flagship — Google
+  routes Gemini 3.6 Flash and OpenAI also routes GPT-5.3 Codex under step 2's *acclaimed smaller
+  sibling* rule, which stops being an anomaly the log keeps re-noting.
+
+  **Claude Opus 5 on OpenRouter — price tier 1, slug tier 2.** `$5/$25` was read off Anthropic's
+  own pricing table in the pass above, today, and OpenRouter passes the lab's list rate through
+  (the existing Fable entry carries Anthropic's `$10/$50` unchanged). The slug
+  `anthropic/claude-opus-5` is **corroborated, not verified**: OpenRouter is still refused at the
+  egress proxy, so it comes from OpenRouter's own model page surfacing in search plus a second
+  independent write-up. A wrong slug fails loudly at request time, which is why the weaker tier
+  is acceptable here and would not be for the price.
+
+  **GPT-6 Astra — added, which reverses the decline recorded twice, including in the pass
+  directly above.** Both earlier passes declined it on **availability, not merit**: the rollout
+  reaches a limited set of organizations, and sources today still say it is not generally
+  available. That objection was raised in the report and the maintainer asked for it anyway, so
+  it ships — but the reason it was declined has not gone away, and it is written here rather
+  than lost: **an `OPENAI_API_KEY` whose organization is not yet in the rollout will fail at
+  request time on `openai-gpt-6-astra`**, which reads as a broken config rather than a
+  not-yet-enabled model. The routed copy (`openai/gpt-6-astra`) is the safer of the two, since
+  OpenRouter brokers access. Price `$10/$50` corroborated from several independent sources that
+  agree exactly on both numbers; the long-context tier above 272K input (`$20/$75`) is **not**
+  modelled, consistent with how the bundle treats Grok 4.6's ≥200K tier — `price:` carries the
+  base rate. The next pass that can reach OpenAI's own page should confirm both the rate and
+  general availability, and drop the entry if GA has been abandoned.
+
+  **Structure:** 41 → **44** bundled paid models, every one still carrying a `price:` block; 11
+  marker blocks, unchanged. `scripts/audit_models.py` re-run after the edit — no drift, no price
+  in any `display_name`, the two synced sources agree. `sync-api-key-models.py --dry-run` still
+  a clean no-op. The five prose copies that no test reads were updated with the entries
+  (`config.example.yaml`'s QUICK START, `providers.py`'s two `description=` strings, the sync
+  script's docstring, `README.md`'s key bullet) and `.env.example`'s OpenAI comment, which
+  `test_env_example_names_the_models_each_home_key_actually_enables` does read.
+
+- **2026-09-06 (requested inside a change-cycle run that did not touch the bundle) — Anthropic
+  re-verified at tier 1; no roster or price change; one genuinely new candidate (Gemini 3.8
+  Flash) and two leads from 2026-09-05 re-checked and both still declined.** The pass was asked
+  for in words, so it ran; the change it accompanied is a UI-visibility and upstream-sync
+  change with no `price:`, `discount:` or provider-block edit in it. Nothing moved in either
+  synced source. What the pass is worth is the three judgements below, each of which had a
+  named condition attached to it yesterday and each of which was actually re-tested rather than
+  assumed.
+
+  **Reachability — unchanged and narrow.** `platform.claude.com` serves. `openrouter.ai`,
+  `platform.openai.com`, `ai.google.dev`, `api-docs.deepseek.com`, `mistral.ai` and
+  `docs.x.ai` are all refused at the egress proxy (`curl` returns 000; `WebFetch` returns
+  `EGRESS_BLOCKED`), and `scripts/audit_models.py` reports the OpenRouter catalog as
+  **skipped** (403 on CONNECT), correctly not as drift. Web search works, so tier 2 was
+  available. Anthropic is therefore tier 1; every other lab is tier 2 or tier 3.
+
+  **Machine half clean.** `scripts/audit_models.py` — no drift, no price in any `display_name`,
+  the two synced sources agree. The stale-fixture self-test
+  (`--catalog scripts/fixtures/model_audit_stale_catalog.json`) still surfaces all four drift
+  kinds (retired slug, moved list price, ended promo, started promo), so the audit itself is
+  not silently broken. `sync-api-key-models.py --dry-run` is a clean no-op.
+
+  **Anthropic — tier 1, all six entries re-read off the provider's own table today**, and all
+  six match both synced sources: Fable 5.1 `$10/$50` (cache read `$0.25`), Opus 5 `$5/$25`
+  (`$0.50`), Opus 4.8 `$5/$25` (`$0.50`), Sonnet 5 `$2/$10` (`$0.20`), Sonnet 4.6 `$3/$15`
+  (`$0.30`), Haiku 4.5 `$1/$5` (`$0.10`). The `0.025x` cache-read exception is still stated on
+  the page and still covers exactly Fable 5.1 and Mythos 5.1; the note making Sonnet 5's
+  `$2/$10` permanent is still there. **Claude Mythos 5.1** stays out of the bundle for the
+  unchanged reason: the page still marks it limited-availability, so a normal
+  `ANTHROPIC_API_KEY` cannot reach it.
+
+  **The offline steps were re-walked and the four prose copies still hold.** Step 3's copies
+  that no test reads — `scripts/wizard/providers.py`'s `description=` strings,
+  `config.example.yaml`'s `QUICK START` comment, `sync-api-key-models.py`'s docstring, and
+  `README.md`'s _A big name's own key present_ bullet — all name exactly the lineups the
+  provider blocks enable. This is the first pass since 2026-09-05 repaired them, so the value
+  here is confirming they did not drift back rather than finding anything.
+
+  **New candidate: Gemini 3.8 Flash (released 2026-09-02) — deferred, and it supersedes the
+  3.7 Flash the last pass deferred.** Corroborated introductory `$0.75/$3.75` through
+  2026-12-31, standard `$1.50/$7.50` from 2027-01-01. Deferred for exactly the reason 3.7 was:
+  tier 2 forbids shipping a discount, so bundling it means carrying the post-window standard
+  rate — which is **identical to the Gemini 3.6 Flash entry already shipped** — and
+  over-reporting its real cost roughly 2x until 2027. Deferring costs one generation on the
+  cheap tier and nothing else. Note for the next pass: the candidate to roll forward is now
+  3.8, not 3.7; do not spend the pass re-litigating the older one.
+
+  **GPT-6 Astra — re-checked against yesterday's named condition, decline stands.** The
+  condition was confirmed general API access. It is still not met: sources today describe the
+  rollout as reaching "a limited set of organizations", with Pro/Enterprise/Business Premium
+  first and Plus and Business to follow, and one explicitly says Astra "is not yet generally
+  available". Price re-corroborated unchanged at `$10/$50` (slug `gpt-6-astra`, long-context
+  tier `$20/$75` above 272K input). A model a normal `OPENAI_API_KEY` cannot call fails at
+  request time, which is worse than a generation-behind flagship, so the entry is not added.
+  When general availability is confirmed this is a straight flagship roll-forward against
+  GPT-5.6 Sol in both synced sources; it re-appears as a `new_candidate` until 2026-11-02 on
+  its own.
+
+  **GPT-5.6 Sol's discount lead — re-checked, still not shipped, and now with the reason
+  sharper.** Sources today agree on the figure `$4/$20` and on its start date (2026-08-21) but
+  **disagree on what it is**: one describes a permanent price cut, another a promotion running
+  "at least through 2026-11-21". Corroboration requires agreement on the figure *and* leaves a
+  discount out of tier 2 entirely, so both readings land in the same place — the entry keeps
+  its verified-as-standard `$5/$30` in both copies, which is the conservative direction because
+  spend is billed at the standard rate either way (§17). This is the same stop the DeepSeek V4
+  Pro disagreement gets, for the same reason.
+
+  **Still owed to the next unrestricted pass**, in priority order: whether GPT-5.6 Sol's
+  `$4/$20` is a cut or a promo (it is the only one where a wrong call changes a shipped
+  number), DeepSeek V4 Pro's peak rate, GPT-6 Astra's general availability, the Gemini 3.8
+  Flash roster decision, and MiniMax M3's OpenRouter promo status — unchecked since 2026-08-22,
+  because OpenRouter has been unreachable for every pass since. Google also remains the one lab
+  whose OpenRouter double is a cheaper sibling rather than its flagship.
+
 - **2026-09-05 (fourth pass, requested inside a change-cycle run) — Anthropic re-verified at
   tier 1; the four figures owed since 2026-08-20 finally corroborated and all four match what
   ships; no config change.** This is the first pass in this environment with a working **web

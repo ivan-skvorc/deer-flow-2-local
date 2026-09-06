@@ -233,7 +233,10 @@ class TestRealExampleConfig:
         ids = {m["model"] for m in data["models"]}
         expected = {
             "anthropic/claude-fable-5-1",
+            # Anthropic and OpenAI each route a *pair* — FORK.md step 3.
+            "anthropic/claude-opus-5",
             "x-ai/grok-4.6",
+            "openai/gpt-6-astra",
             "openai/gpt-5.6-sol",
             "openai/gpt-5.3-codex",
             "google/gemini-3.6-flash",
@@ -325,8 +328,10 @@ class TestHomeApiBlocks:
         out = sync_api.sync(self.text, all_slugs)
         names = [m["name"] for m in yaml.safe_load(out)["models"]]
         assert len(names) == len(set(names)), "model names collide when every key is set"
-        # 6 Anthropic + 13 OpenRouter + 22 home = 41 distinct models.
-        assert len(names) == 41
+        # 6 Anthropic + 15 OpenRouter + 23 home = 44 distinct models.
+        # OpenRouter gained Opus 5 and GPT-6 Astra (the two paired labs of
+        # FORK.md step 3); the OpenAI home block gained Astra's direct twin.
+        assert len(names) == 44
 
     def test_openai_home_and_openrouter_gpt_are_distinct_entries(self):
         """The GPT flagship is doubled: a direct OpenAI entry AND the OpenRouter
@@ -431,6 +436,50 @@ class TestFirstPartyKeyCoverage:
         # The template case this generalises: Anthropic's Fable 5.1 is direct *and* routed.
         assert "claude-fable-5-1" in direct_ids
         assert "claude-fable-5-1" in routed
+
+    # FORK.md, step 3: two labs route a *pair* rather than a single flagship,
+    # because their top tier is really two models a factor of two apart in price.
+    PAIRED_ROUTED_LABS = {
+        "anthropic": ("anthropic/claude-fable-5-1", "anthropic/claude-opus-5"),
+        "openai": ("openai/gpt-6-astra", "openai/gpt-5.6-sol"),
+    }
+
+    def test_the_paired_labs_route_both_halves(self):
+        """Half a pair is the silent failure this pins.
+
+        Anthropic and OpenAI each route two models rather than one, and either
+        half alone breaks an OpenRouter-only user in a way nothing reports.
+        Route only the dearer (Fable, Astra) and every routed task bills at
+        roughly twice what the cheaper sibling would have charged for most of
+        it — the config is valid, the model answers, the bill is just wrong.
+        Route only the cheaper (Opus, Sol) and the lab's best model is
+        unreachable on that key, with the home block no help, because holding
+        it is precisely what this user did not do.
+
+        A roster roll-forward is how one half goes missing: the newer model
+        gets upgraded, the older one is left pointing at a retired slug or
+        dropped as redundant, and `test_every_lab_with_a_home_block_has_its_
+        flagship_doubled` above still passes on the surviving half. So both
+        halves are named here, by slug.
+        """
+        routed = {m["model"].lower() for m in self.models if m["name"].startswith("openrouter-")}
+        for lab, pair in self.PAIRED_ROUTED_LABS.items():
+            missing = [slug for slug in pair if slug.lower() not in routed]
+            assert not missing, f"{lab} routes a pair (FORK.md step 3) and is missing {missing} from the OpenRouter block"
+
+    def test_a_paired_lab_routes_both_halves_from_its_own_home_block(self):
+        """The pair is a *doubling*, so each half needs its direct twin too.
+
+        Without this, the pair could be satisfied by routed-only entries, which
+        is the one shape step 3 forbids for a lab that ships a first-party API:
+        a user holding the lab's own key would see fewer models than a user
+        holding OpenRouter's.
+        """
+        direct_ids = {m["model"].lower() for m in self.models if not m["name"].startswith("openrouter-")}
+        for lab, pair in self.PAIRED_ROUTED_LABS.items():
+            for slug in pair:
+                bare = slug.split("/", 1)[1].lower()
+                assert bare in direct_ids, f"{lab}: {slug} is routed but has no direct entry — the pair must be doubled, not routed-only"
 
     def test_only_meta_and_nvidia_stay_openrouter_only(self):
         """Every other routed lab must own a direct block; when an OpenRouter-only

@@ -13,14 +13,13 @@
 > - 🧵 **Sub-agents that respect what your GPU can actually hold** — dispatching three sub-agents at once onto a model that fits your card once does not make them three times faster: Ollama quietly queues the extras inside the daemon, where nothing in the app can see them and each sub-agent's own timeout keeps counting. Two *different* local models that don't co-reside are worse — the daemon evicts one to load the other, on every alternation. So local dispatch now asks the card, not a fixed number: five sub-agents on a model that fits once run **one at a time**, on a model your card holds twice they run **two at a time**, and models that co-reside still run **all at once**. Hosted models, and any local model whose size isn't known, dispatch exactly as before. On by default; `subagent_runtime.local_model_capacity.enabled: false` turns it off.
 > - 🔑 **API-key model auto-config** — on every launch, `scripts/sync-api-key-models.py` reads your `.env` and uncomments the matching cloud-model block in `config.yaml`, so the right models are enabled on first start with no manual editing. It only ever uncomments (never re-comments), skips a block whose models are already active, and no-ops when the key is absent. The auto-enabled models and their conditions:
 >   - **`ANTHROPIC_API_KEY` present** → Claude **Fable 5.1**, **Opus 5**, **Opus 4.8**, **Sonnet 5**, **Sonnet 4.6**, **Haiku 4.5** (direct Anthropic API). Opus and Sonnet each ship their last 4.x alongside 5; Haiku and Fable ship only the latest.
->   - **`OPENROUTER_API_KEY` present** → Claude **Fable 5.1** (the flagship, for OpenRouter-only users — every other Claude is on the direct Anthropic block above), **Grok 4.6**, **GPT-5.6 Sol**, **GPT-5.3 Codex**, **Gemini 3.6 Flash**, **Llama 4 Maverick**, **MiniMax M3**, **Qwen3.8 Max**, **Kimi K3**, **Mistral Large 3**, **DeepSeek V4 Pro**, **GLM-5.3**, **Nemotron 3 Ultra** (all via OpenRouter). One flagship per big-name lab (a second only when the smaller model is acclaimed on its own — e.g. GPT-5.3 Codex).
->   - **A big name's own key present** → that lab's **fuller lineup on its own API**, exactly as `ANTHROPIC_API_KEY` does for Claude — so the flagship you can reach through OpenRouter is *also* reachable direct, with its cheaper siblings alongside it and no middleman: `OPENAI_API_KEY` → **GPT-5.6 Sol / GPT-5.3 Codex / GPT-5.6 Terra / GPT-5.6 Luna**, `XAI_API_KEY` → **Grok 4.6 / Grok 4.3**, `GEMINI_API_KEY` → **Gemini 3.6 Flash / 3.5 Flash-Lite / 3.1 Pro**, `DEEPSEEK_API_KEY` → **DeepSeek V4 Pro / V4 Flash**, `MOONSHOT_API_KEY` → **Kimi K3 / K2.6**, `DASHSCOPE_API_KEY` → **Qwen3.8 Max / Qwen3.7 Plus**, `MISTRAL_API_KEY` → **Mistral Large 3 / Medium 3.5 / Small 4**, `MINIMAX_API_KEY` → **MiniMax M3 / M2.7**, `ZAI_API_KEY` → **GLM-5.3 / GLM-4.5 Air**. Set both a lab's key and `OPENROUTER_API_KEY` and you get both copies, side by side and separately named. Only **Meta Llama** and **NVIDIA Nemotron** stay OpenRouter-only — neither ships a first-party consumer API.
+>   - **`OPENROUTER_API_KEY` present** → Claude **Fable 5.1** and **Opus 5**, **Grok 4.6**, **GPT-6 Astra** and **GPT-5.6 Sol**, **GPT-5.3 Codex**, **Gemini 3.6 Flash**, **Llama 4 Maverick**, **MiniMax M3**, **Qwen3.8 Max**, **Kimi K3**, **Mistral Large 3**, **DeepSeek V4 Pro**, **GLM-5.3**, **Nemotron 3 Ultra** (all via OpenRouter). One flagship per big-name lab, with two deliberate pairs: Anthropic and OpenAI each ship a top tier that is really *two* models a factor of two apart in price, and routing only one of them either bills you double for work the cheaper one does or puts the lab's best model out of reach on this key. Every Claude below that pair still lives on the direct Anthropic block. A second entry also appears where the smaller model is acclaimed in its own right — GPT-5.3 Codex, and Gemini's Flash rather than a Pro.
+>   - **A big name's own key present** → that lab's **fuller lineup on its own API**, exactly as `ANTHROPIC_API_KEY` does for Claude — so the flagship you can reach through OpenRouter is *also* reachable direct, with its cheaper siblings alongside it and no middleman: `OPENAI_API_KEY` → **GPT-6 Astra / GPT-5.6 Sol / GPT-5.3 Codex / GPT-5.6 Terra / GPT-5.6 Luna**, `XAI_API_KEY` → **Grok 4.6 / Grok 4.3**, `GEMINI_API_KEY` → **Gemini 3.6 Flash / 3.5 Flash-Lite / 3.1 Pro**, `DEEPSEEK_API_KEY` → **DeepSeek V4 Pro / V4 Flash**, `MOONSHOT_API_KEY` → **Kimi K3 / K2.6**, `DASHSCOPE_API_KEY` → **Qwen3.8 Max / Qwen3.7 Plus**, `MISTRAL_API_KEY` → **Mistral Large 3 / Medium 3.5 / Small 4**, `MINIMAX_API_KEY` → **MiniMax M3 / M2.7**, `ZAI_API_KEY` → **GLM-5.3 / GLM-4.5 Air**. Set both a lab's key and `OPENROUTER_API_KEY` and you get both copies, side by side and separately named. Only **Meta Llama** and **NVIDIA Nemotron** stay OpenRouter-only — neither ships a first-party consumer API.
 > - 🔀 **Independent model per conversation** — every chat remembers its **own** model (and subagent model, mode, and reasoning effort), stored per-thread instead of in one shared setting. Run a free local Ollama model in one conversation and a cloud model in another, side by side — switching the model in one no longer flips the model in the others. Previously every chat that hadn't been explicitly pinned followed the last model picked *anywhere* (even across browser tabs, via the shared settings sync), which made running local and cloud models simultaneously impossible; now each conversation is isolated and new chats simply start from the configured default model.
 > - 🚦 **Concurrent chats** — ask one conversation something slow, leave it, and prompt another one; both keep going. Leaving a chat used to **cancel** its run (the Gateway cancels a run when the browser disconnects unless told otherwise), so walking away from a long answer to write the next prompt killed the answer you walked away to wait for. Now a chat you leave *while it is still answering* is kept as a keep-alive tab and goes on streaming in the background, with a pulsing dot on its tab and a notification when it lands. With a **local Ollama model** the queue moves into the daemon: it answers `OLLAMA_NUM_PARALLEL` requests per model at a time (**1** by default), so raise it and set `ollama.num_parallel` to match — `make doctor` tells you where you stand.
 > - 🗂️ **Browser-style keep-alive chat tabs** — drag conversations up into a tab strip and they stay **mounted and running in the background**: a tab you switch away from keeps streaming and keeps its scroll position, artifacts, and browser panel, instead of upstream's single pane that tears the previous chat down on every switch. The tab set is saved server-side per user, so it survives a browser restart — and even reopening the app on a different address (`localhost` vs. your LAN / Tailscale name).
 > - 🗃️ **Folders in the sidebar** — the chat list is a tree now, not one endless column. Press **+** beside the *Recent chats* heading to make a folder, then drag conversations into it — and a conversation you file is **inside the folder and gone from the list outside it**, the way a file manager works, so a folder is one collapsed row instead of a second copy of everything. The arrow beside the name opens and closes it; rename and delete live in the folder's own **⋯** menu, next to the same menu each conversation already has. Deleting a folder never deletes the chats in it — they come straight back to the list. Folder names and what is in them are stored **per user on the server**, so they follow you to another browser or device (only which folders are *open* is per browser). No config, nothing to turn on.
 > - 🏛️ **Democracy — several models answer, then decide together** — a setup page under *New chat* where you pick an organizer model, how many panelists, which model fills each seat, and whether the organizer grades them (out of 5, or yes/no) on what they actually contributed. Attach files to the task, not just text. The organizer researches **once** and hands every panelist the identical brief, they answer independently and then review each other **anonymously**, and the organizer synthesizes — reporting the split and naming dissenters rather than averaging them away. Facts are gathered once and deliberately **not** re-verified by the panel, because that is the cost this design refuses to pay. Ask a follow-up and the whole panel runs again, each panelist re-briefed with its own previous answers and the discussion — you always get one answer, the organizer's, never a fan-out to reconcile. It is **extremely token-heavy** (up to N x 2 full model runs for N panelists, *per question*) and the setup page estimates the multiple against a single answer before you commit. No config keys: it works as soon as two models are configured.
-> - 🖼️ **Local image and video generation, on your own GPU** — ask for a picture and get a PNG in the artifact panel with **no API key and nothing leaving the house**; the bundled media skills call MiniMax or Gemini over HTTPS, this renders on a ComfyUI service the stack finds or starts for you. The agent can then **look at what it made and try again**: a refine loop judges each attempt against three to six criteria frozen before the first one, changes exactly one thing per round, and is stopped by a counter the *server* holds rather than by the model remembering to stop. Clips work too — and because no model can watch an MP4, each one also produces a contact sheet of evenly spaced frames, which is what gets critiqued. A GPU arbiter swaps your chat model out and back inside the tool call, so a 24 GB card runs both without the silent slowdown of Ollama quietly offloading to RAM. On by default: every launch reuses a ComfyUI you already run, or starts the bundled container when this machine has Docker and a GPU. It costs your own checkpoints — `make comfy-model-add` installs one into whichever instance is in use — and there is a sidebar button for it, next to *New chat* and *Democracy*.
 > - 🤖 **Generate a custom agent from your history** — instead of hand-writing a persona, point a model at past conversations or scheduled tasks and let it decide whether a *new* agent is even worth adding. It is allowed to say **no** — naming the existing agent that already covers the work — so your roster doesn't fill up with near-duplicates. When it does propose one you get an editable **SOUL.md** draft, and nothing is saved until you press **Create**; the analysis itself never writes an agent. An optional *what should this agent do?* box steers it toward a goal, and a **Refine** box adjusts the draft in place without regenerating it. On by default alongside the custom-agent API (**Agents → Generate from history**).
 > - 🕯️ **Gaslight mode** — edit **either half of a turn** and the conversation carries on as if those had always been the words. Edit your own message and it replays from there with the new wording; edit **the assistant's answer** and your text simply *becomes* what it said — nothing is re-generated, and whatever you send next is answered with those words standing in the history. The version you were reading is kept either way, and a `‹ 2/2 ›` switcher appears **on the edited message** to move between them. Upstream's **Branch** button forked each attempt into a *separate* chat, so trying three phrasings of one question left four entries in the sidebar with no clue which was which; here the alternatives are hidden threads and **one conversation stays one sidebar entry**, however many times you edit it — and the entry follows whichever version you are actually reading. Editing the very first message has nothing to fork from, so it simply starts a fresh version.
 > - 💵 **Live cost overview in the conversation header** — the token counter next to a chat now shows an estimated **dollar (or other currency) cost**, priced from each model's `pricing:` block in `config.yaml`. It's **model-aware**: each run's per-model token split is billed at that model's own rate, so subagents on a cheaper or local model are costed correctly — hover the **?** for the note that models without a configured price (like local Ollama) count as $0, ignoring electricity. **Anything the conversation spends is counted, not just its answers**: the four LLM calls that never become a run of their own — background **memory** extraction, follow-up **suggestions**, the composer's **prompt polish** rewrite, and the per-turn **goal check** — each get their own separate, separately-priced counter in the dropdown, so you can see what each is quietly costing. Prompt polish is the one to look at first: it is **on by default**, so it is the only one you pay for without having turned anything on. All of those counters are **persisted** (a small `aux_usage.sqlite3` beside your other DeerFlow state), so they survive restarting the stack — or the whole machine — instead of resetting to zero. No pricing configured → the cost line simply hides.
@@ -146,7 +145,6 @@ DeerFlow has newly integrated the intelligent search and crawling toolset indepe
   - [Recommended Models](#recommended-models)
   - [Embedded Python Client](#embedded-python-client)
   - [Scheduled Tasks](#scheduled-tasks)
-  - [Local Image and Video Generation](#local-image-and-video-generation)
   - [Voice Input](#voice-input)
   - [Large Documents and Scanned PDFs](#large-documents-and-scanned-pdfs)
   - [Terminal Workbench (TUI)](#terminal-workbench-tui)
@@ -473,6 +471,8 @@ DeerFlow still uses `Forwarded` / `X-Forwarded-*` headers to recover the browser
 > After a run publishes its terminal stream marker, its process-local `RunRecord` remains available for the existing five-minute grace period before cleanup; durable run history remains available through `RunStore`, while the stream bridge retains its delivery tail on its separate cleanup schedule.
 >
 > Run cancellation may land on any Gateway worker. A non-owning worker now persists the interrupt or rollback request for the live owner, which observes it during lease renewal and performs the normal cancellation flow; load-balancer routing alone no longer produces a 409. The first accepted action wins even if a retry lands on the owner, and accepted cancellation competes atomically with owner completion. Dead owners still follow lease takeover and orphan recovery. Cancellation latency is therefore bounded by the lease heartbeat interval.
+
+> Cancelling a model recovery probe, including while it is queued or waiting to retry, lets the next call check whether the provider has recovered. Cancellation does not count as a provider failure or release another call's active recovery probe.
 >
 > With lease heartbeat enabled, a transient RunStore renewal error is retried only until the last confirmed lease expires; the stale worker then cancels local execution and suppresses checkpoint, completion-hook, delivery-receipt, and thread-status finalization. A remote tool side effect already in flight may still be outside local cancellation.
 >
@@ -923,9 +923,14 @@ Once a channel is connected, you can interact with DeerFlow directly from the ch
 | `/status` | Show current thread info |
 | `/models` | List available models |
 | `/memory` | View memory |
+| `/agent list` | List your Custom Agents |
+| `/agent use <name>` | Start a new conversation with a Custom Agent |
 | `/help` | Show help |
 
 > Messages without a command prefix are treated as regular chat — DeerFlow creates a thread and responds conversationally.
+
+Agent selection is conversation-scoped: `/agent use <name>` starts a fresh conversation and pins that Custom Agent in the thread metadata. Existing conversations never switch agents midway, the selection survives a Gateway restart, and opening the IM-created thread in the Web UI continues through the same Custom Agent.
+Use `/agent use lead_agent` to return to the default agent in a new conversation.
 
 #### Request Trace Correlation
 
@@ -1389,6 +1394,12 @@ DEERFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 ```
 
 See [`skills/public/claude-to-deerflow/SKILL.md`](skills/public/claude-to-deerflow/SKILL.md) for the full API reference.
+
+### Chat Archive
+
+Use **Archive chat** in a recent chat's sidebar menu to hide completed work while keeping its messages, files, and original link. The success message offers **Undo**. Open **Chats → Archived** to find archived conversations and restore them individually; an open archived conversation also shows a restore button in its header. Search filters the titles of loaded conversations, with **Load more** for older entries.
+
+Archive and restore preserve the chat's activity time and pinned state. Archiving does not stop a running task or pause its schedules, and new activity does not automatically restore it. Use the existing Delete action when you intend to remove a conversation and its files.
 
 ### Session Goals
 
@@ -1908,7 +1919,7 @@ worse than no switch:
   the switch with a local Ollama model for a conversation that reaches nothing.
 
 Local tools are deliberately left alone while the switch is off: reading and
-writing files, the shell, local ComfyUI image and video generation, and a
+writing files, the shell, local media generation, and a
 self-hosted knowledge base all keep working, so "offline" means *offline*, not
 *idle*. The classification is fail-closed — a tool group DeerFlow does not
 recognize as local is treated as internet-reaching and dropped — so a provider
@@ -2189,144 +2200,6 @@ File permissions survive the round trip, so credential directories come back
 `0700` rather than world-readable. Ownership is not restored (only root could),
 which is deliberate — restoring as your own user is also the fix if a Docker run
 has left root-owned files behind.
-
-## Local Image and Video Generation
-
-Ask for a picture and get one back rendered on your own GPU: a prompt in chat
-produces a PNG in the artifact panel, with **no API key set and nothing leaving
-the house**. The two bundled media skills (`image-generation`,
-`video-generation`) call MiniMax or Gemini over HTTPS — every image costs money
-and every prompt leaves your network. This is the local tier for the same
-modality, the same move this fork already made for chat with Ollama: a
-long-lived [ComfyUI](https://github.com/comfyanonymous/ComfyUI) service on your
-machine, driven by Gateway-side tools (`generate_image`, `generate_video`,
-`list_media_models`) rather than by a skill script. The service is found or
-started for you at launch (see below); results appear in the chat's artifact
-panel on their own, and video clips play there too.
-
-**The agent can look at what it made and try again.** The `image-refine` skill
-runs a generate → view → judge → change-one-thing loop against three to six
-criteria it fixes *before* the first attempt, and the **server**, not the model,
-counts the iterations: attempt N+1 is refused outright when the cap or the time
-budget is spent. A verdict must judge every frozen criterion and a retry must
-name exactly one change — so when the fourth attempt is better you can see which
-change did it. The loop is allowed to give up: an `abandon` verdict says what
-could not be achieved instead of burning the cap. Every session is written
-beside the outputs as JSON — criteria, and per iteration the seed, parameters,
-verdict and filename.
-
-**A language model and a diffusion model do not both fit on one consumer card,
-and that failure is silent** — Ollama does not error when weights do not fit, it
-offloads layers to system RAM and answers several times slower. So generation
-takes the GPU through an arbiter: it evicts the chat model, generates, and hands
-back an empty card, all *inside the tool call*. Residency is re-read from the
-services on every acquire (a Gateway killed mid-generation is recovered by the
-next one, not by a restart), and the policy is **computed** from your VRAM
-budget — put a bigger card in and it resolves to "both resident" on its own,
-with no config edit. Switch your lead model to a cloud one and every eviction
-becomes a no-op.
-
-Limits worth knowing before you turn it on:
-
-- **You supply the models.** Checkpoints, unets, VAEs and text encoders go in
-  ComfyUI's own `models/` directory; nothing is bundled or downloaded for you.
-  `list_media_models` reports what is actually installed, read from the running
-  ComfyUI, so the agent can only pick from real files.
-- **Video is minutes per clip**, not seconds — it has its own timeout
-  (`video_timeout`, 40 minutes by default) separate from images.
-- **No model can watch an MP4.** `view_image` accepts png/jpg/webp/gif only, so
-  every clip is also written as evenly spaced stills plus one **contact sheet**
-  PNG, and that sheet is what the critique step looks at. Flicker, morphing and
-  identity drift are far easier to see side by side than frame by frame.
-- **A text-only local model cannot run the refine loop.** `view_image` is bound
-  only when the model reports vision support; without it the skill generates
-  once and says it cannot see the result, rather than iterating blind.
-- The workflow that produced each result is saved next to it as
-  `<name>.workflow.json`, in ComfyUI's API format — open it in ComfyUI and you
-  get the same image by hand.
-
-**On by default, with the service found or started for you.** The tools ship
-active in `config.example.yaml`, and every launch path (`make dev`, `make start`,
-`make docker-start`, `make up`) resolves ComfyUI before the Gateway comes up:
-
-1. **Already running one?** It is detected and used —
-   `scripts/detect_comfyui.py` probes `:8188`, and `DEER_FLOW_COMFYUI_BASE_URL`
-   names a specific instance, including one on another machine on your tailnet.
-   Two ComfyUIs on one card is how a GPU ends up thrashing, so reuse always wins.
-2. **Nothing running?** The bundled container is started for you
-   (`docker/docker-compose.comfyui.yml`, publishing `127.0.0.1:8188`) — but only
-   when this machine can actually run it: Docker **and** a GPU
-   (`nvidia-smi` / `rocm-smi` / Apple). The image reserves an NVIDIA device, so
-   provisioning it on a GPU-less laptop would fail at `compose up` rather than
-   produce a picture.
-3. **Neither?** Nothing is started and the reason is printed. The tools stay
-   bound and answer with a message, so the agent falls back to the cloud
-   `image-generation` skill instead of insisting.
-
-Override the second step with `DEER_FLOW_COMFYUI_AUTOSTART` — `0` never starts
-one, `1` starts it even when no GPU is visible here (a passthrough the detector
-cannot see: WSL, a rented box). `make comfy-up` / `comfy-down` / `comfy-logs`
-remain the manual door and share one implementation with the automatic one.
-
-**You still supply the models**, and there is a command for both shapes of the
-integration:
-
-```bash
-make comfy-models                                             # what is installed
-make comfy-model-add SOURCE=https://…/sdxl.safetensors TYPE=checkpoints
-make comfy-model-add SOURCE=./my-lora.safetensors TYPE=loras SHA256=<hex>
-```
-
-It writes into whichever ComfyUI is in use. For the bundled container that is
-its bind-mounted models directory; for one you run yourself it is resolved from
-`--models-dir`, then `DEER_FLOW_COMFYUI_EXTERNAL_MODELS`, then that container's
-own `models` mount, then the well-known install paths — and it **refuses rather
-than guessing**, because a perfectly successful 6 GB download into the ComfyUI
-the Gateway is *not* talking to looks exactly like success. Downloads are
-verified and renamed into place only once complete, so a truncated checkpoint
-never shows up as installed.
-
-Everything else is configuration you rarely touch:
-
-```yaml
-# config.yaml
-media:
-  default_checkpoint: null # null = use the first checkpoint ComfyUI reports
-  comfyui:
-    base_url: http://localhost:8188 # DEER_FLOW_COMFYUI_BASE_URL overrides it
-    image_timeout: 600
-    video_timeout: 2400
-  refine:
-    max_iterations: 4 # the server refuses attempt 5
-    budget_seconds: 1800
-  gpu:
-    enabled: true
-    budget_gb: auto # nvidia-smi / rocm-smi / Apple unified memory
-    policy: auto # computed: exclusive on a small card, shared on a big one
-```
-
-`make doctor` reports whether the service is reachable and — the check that
-matters day to day — whether VRAM is being held while nothing is generating. On
-a machine where nothing would be auto-started it says so and skips, rather than
-warning about a service you never asked for.
-
-**There is a button for it.** The sidebar's third entry, under *New chat* and
-*Democracy*, opens a setup page: what to generate, image or clip, at what
-resolution, which checkpoint, and whether to run the refine loop. It seeds the
-composer with the request rather than sending it, so a run that costs GPU
-minutes — several, for a clip — gets one last look first.
-
-A toggle on that page decides **who writes the prompt**. Hand over a prompt you
-already have and it is submitted *exactly as written* — no rewriting, no helpful
-expansion — with your own negative prompt beside it. Or describe the picture in
-ordinary words and the assistant writes the prompt: a detailed positive one, and
-a negative one where the chosen model actually uses it, both shown to you before
-anything is generated. Checkpoints that sample at CFG 1 (Flux, turbo, lightning,
-LCM, Hyper) never evaluate the negative branch, so the page says so rather than
-offering a box the sampler will ignore. The resolution is two numbers rather than
-a shape name — the aspect presets fill them in, and you can overwrite either —
-snapped to ComfyUI's latent grid and shown snapped, so the size on screen is the
-size that runs.
 
 ## Large Documents and Scanned PDFs
 

@@ -505,6 +505,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **models:** **Two labs now route a pair through OpenRouter, and the roster grows
+  by three.** The audit's doubling rule (FORK.md step 3) said a lab is reachable
+  two ways by putting *its flagship* on OpenRouter. It now names two exceptions:
+  Anthropic routes **Claude Fable 5.1 and Claude Opus 5**, OpenAI routes **GPT-6
+  Astra and GPT-5.6 Sol**. Those two labs' top tier is really two models a factor
+  of two apart in price (`$10/$50` beside `$5/$25`, `$10/$50` beside `$5/$30`),
+  and either half alone fails an OpenRouter-only user in a way nothing reports:
+  route only the dearer and every routed task bills at roughly twice what the
+  cheaper sibling would have charged for most of it; route only the cheaper and
+  the lab's best model is unreachable on that key, with the home block no help
+  because holding it is what that user did not do. So `OPENROUTER_API_KEY` now
+  enables **Claude Opus 5** and **GPT-6 Astra** alongside what it already did,
+  and `OPENAI_API_KEY` enables **GPT-6 Astra** direct. The edit also writes down
+  something already true and undocumented: the routed slot need not be a flagship
+  — Google routes Gemini 3.6 Flash and OpenAI also routes GPT-5.3 Codex under the
+  audit's existing *acclaimed smaller sibling* rule. Pinned by
+  `TestFirstPartyKeyCoverage::test_the_paired_labs_route_both_halves` and
+  `test_a_paired_lab_routes_both_halves_from_its_own_home_block`, which name both
+  pairs by slug so a roster roll-forward that upgrades one half and forgets the
+  other fails loudly instead of quietly halving the choice.
+
+  **One caveat, recorded rather than buried:** GPT-6 Astra's API rollout is still
+  staged, so an `OPENAI_API_KEY` whose organization is not yet included will fail
+  at request time on the direct entry — the routed copy is the safer of the two,
+  since OpenRouter brokers access. `docs/model-audit-log.md` carries the full
+  reasoning and the two earlier passes this deliberately reverses. Existing
+  `config.yaml` files do not gain the entries automatically; a fresh install and
+  `make setup` both do.
+
+- **ui:** **Image generation is no longer advertised.** The sidebar's third
+  entry, beside _New chat_ and _Democracy_, is gone, and so are the feature's
+  README bullet and its **Local Image and Video Generation** section. Nothing
+  behind it was switched off: the five `media` tools stay bound, the launch
+  paths still resolve-or-provision ComfyUI, `make comfy-*` still works, and
+  `/workspace/image/new` still renders for anyone who navigates to it — asking
+  for a picture in chat is unchanged. What changed is what the fork *offers*.
+  The entry sat third in the sidebar of every install, including the ones with
+  no GPU and no reachable ComfyUI, where the only honest outcome behind it is
+  the cloud fallback. This is the kind of decision that reverts itself in
+  silence — a re-added `SidebarMenuButton` compiles, type-checks and renders
+  correctly — so `frontend/tests/unit/components/workspace/workspace-header.dom.test.tsx`
+  asserts on the **route** (`/workspace/image`), not the label, and the §26
+  checklist row now carries it.
+
+- **sync:** **Merged 18 upstream commits.** User-visible pickups: **archive and
+  restore** for conversations (a metadata flag independent of run status, with
+  its own sidebar action and filter), per-conversation **custom agent selection**
+  in IM channels, read-only **LightRAG** retrieval as an alternative
+  `knowledge_search` provider, and an optional **Parallel Search** MCP server.
+  Fixes: an owned LLM recovery probe leaking on cancellation, embedded agent
+  reuse now scoped by effective user, `llm.ai.response` no longer persisted
+  twice on a re-fired `on_llm_end`, memory backend read failures enforced rather
+  than swallowed, private ACLs on the Lark credential tree under Windows, and
+  terminal signalling finishing after hook cancellation. Three fork resolutions
+  worth naming: the fork's `_UI_PLACEMENT_METADATA_GUARDS` absorbed upstream's
+  archive flag rather than being replaced by its unguarded `set(...) <= {...}`
+  predicate (the per-key shape guard is what stops any client editing metadata
+  without touching recency), upstream's inline sidebar row was folded back into
+  the fork's `renderThreadRow` helper so folders and the root list keep one
+  renderer, and upstream's newly active DuckDuckGo `web_search` entry was
+  dropped in favour of this fork's SearXNG default — duplicate tool names keep
+  the first entry, so shipping both would have silently switched web search
+  over.
+
 - **sync:** **Merged 14 upstream commits.** User-visible pickups: an
   approval-gated **controlled egress** mode for the AIO sandbox (an
   egress-controlled internal network plus a relay proxy, `sandbox.network`),

@@ -46,7 +46,7 @@ from app.gateway.utils import sanitize_log_param
 from deerflow.agents.thread_state import THREAD_STATE_REDUCER_FIELDS
 from deerflow.config.paths import Paths, get_paths
 from deerflow.config.summarization_config import ContextSize
-from deerflow.persistence.thread_meta import THREAD_FOLDER_METADATA_KEY, THREAD_PINNED_METADATA_KEY
+from deerflow.persistence.thread_meta import THREAD_ARCHIVED_METADATA_KEY, THREAD_FOLDER_METADATA_KEY, THREAD_PINNED_METADATA_KEY
 from deerflow.runtime import ThreadOperationKind, serialize_channel_values_for_api
 from deerflow.runtime.checkpoint_mode import CheckpointModeMismatchError, CheckpointModeReconfigurationError
 from deerflow.runtime.checkpoint_state import graph_reducer_channels, graph_state_schema, graph_writable_channels
@@ -138,21 +138,23 @@ def _strip_reserved_metadata(metadata: dict[str, Any] | None) -> dict[str, Any]:
 
 
 # Metadata keys that record where a conversation *sits* in the sidebar, not
-# what happened inside it: the pin flag, and the id of the folder it was filed
-# into (``None`` = back to the root list). A PATCH touching only these must not
-# bump ``updated_at`` — the list is recency-ordered, so pinning a chat or
-# dragging it into a folder would otherwise shove it to the top and reshuffle
-# the sidebar under the user's cursor. Each key carries its own value guard so a
-# patch that smuggles a different shape falls back to the ordinary
-# touch-the-timestamp path rather than silently getting the exemption.
+# what happened inside it: the pin flag, the archive flag, and the id of the
+# folder it was filed into (``None`` = back to the root list). A PATCH touching
+# only these must not bump ``updated_at`` — the list is recency-ordered, so
+# pinning a chat, archiving it, or dragging it into a folder would otherwise
+# shove it to the top and reshuffle the sidebar under the user's cursor. Each
+# key carries its own value guard so a patch that smuggles a different shape
+# falls back to the ordinary touch-the-timestamp path rather than silently
+# getting the exemption.
 _UI_PLACEMENT_METADATA_GUARDS: dict[str, Any] = {
     THREAD_PINNED_METADATA_KEY: lambda value: isinstance(value, bool),
+    THREAD_ARCHIVED_METADATA_KEY: lambda value: isinstance(value, bool),
     THREAD_FOLDER_METADATA_KEY: lambda value: value is None or isinstance(value, str),
 }
 
 
 def _is_ui_placement_metadata_patch(metadata: dict[str, Any]) -> bool:
-    """Return True for the narrow pin/unpin and folder-move PATCH shapes."""
+    """Return True for the narrow pin, archive and folder-move PATCH shapes."""
     if not metadata:
         return False
     return all(key in _UI_PLACEMENT_METADATA_GUARDS and _UI_PLACEMENT_METADATA_GUARDS[key](value) for key, value in metadata.items())
@@ -520,6 +522,7 @@ class ThreadCreateRequest(BaseModel):
 class ThreadSearchRequest(BaseModel):
     """Request body for searching threads."""
 
+    archived: bool | None = Field(default=None, strict=True, description="Archive filter; omitted includes all, false includes legacy unarchived threads")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Metadata filter (exact match)")
     limit: int = Field(default=100, ge=1, le=1000, description="Maximum results")
     offset: int = Field(default=0, ge=0, description="Pagination offset")
@@ -567,6 +570,13 @@ class ThreadPatchRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict, description="Metadata to merge")
 
     _strip_reserved = field_validator("metadata")(classmethod(lambda cls, v: _strip_reserved_metadata(v)))
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_archive_flag(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if THREAD_ARCHIVED_METADATA_KEY in value and not isinstance(value[THREAD_ARCHIVED_METADATA_KEY], bool):
+            raise ValueError("deerflow_archived must be a boolean")
+        return value
 
 
 class ThreadStateUpdateRequest(BaseModel):
@@ -1174,6 +1184,7 @@ async def search_threads(body: ThreadSearchRequest, request: Request) -> list[Th
         rows = await repo.search(
             metadata=body.metadata or None,
             status=body.status,
+            **({"archived": body.archived} if body.archived is not None else {}),
             limit=body.limit,
             offset=body.offset,
         )
@@ -1208,10 +1219,10 @@ async def patch_thread(thread_id: ThreadId, body: ThreadPatchRequest, request: R
         raise HTTPException(status_code=404, detail=f"Thread {thread_id} not found")
 
     # ``body.metadata`` already stripped by ``ThreadPatchRequest._strip_reserved``.
-    # Pin/unpin and a folder move are filing, not conversation activity, so they
-    # must not bump ``updated_at``. Other metadata PATCH callers keep the public
-    # endpoint's existing recency contract unless they get their own explicit
-    # no-touch API surface.
+    # Pin/unpin, archive/restore and a folder move are filing, not conversation
+    # activity, so they must not bump ``updated_at``. Other metadata PATCH
+    # callers keep the public endpoint's existing recency contract unless they
+    # get their own explicit no-touch API surface.
     touch = not _is_ui_placement_metadata_patch(body.metadata)
     try:
         await thread_store.update_metadata(thread_id, body.metadata, touch=touch)

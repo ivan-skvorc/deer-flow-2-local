@@ -199,11 +199,19 @@ class TestBundleProviders:
         provider = next(p for p in LLM_PROVIDERS if p.name == "openrouter")
         assert provider.default_model in provider.models
         bundle_ids = [m["model"] for m in provider.bundle_models]
-        # Claude Fable (flagship, OpenRouter-only users) + the xAI / OpenAI / Google
-        # flagships. Every other Claude lives on the direct Anthropic bundle, so
-        # Opus 5 is intentionally NOT routed through OpenRouter.
+        # Anthropic and OpenAI each route a *pair* (FORK.md step 3): their top
+        # tier is really two models a factor of two apart in price, and either
+        # half alone misprices or strands an OpenRouter-only user. This
+        # previously asserted Opus 5 was NOT routed — the old one-flagship rule.
+        # Every Claude *below* the pair still lives only on the direct bundle,
+        # which is what the Sonnet/Haiku exclusions below hold.
         assert "anthropic/claude-fable-5-1" in bundle_ids
-        assert "anthropic/claude-opus-5" not in bundle_ids
+        assert "anthropic/claude-opus-5" in bundle_ids
+        assert "openai/gpt-6-astra" in bundle_ids
+        assert "openai/gpt-5.6-sol" in bundle_ids
+        for below_the_pair in ("anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "anthropic/claude-haiku-4-5"):
+            assert below_the_pair not in bundle_ids, f"{below_the_pair} belongs to the direct Anthropic bundle only"
+
         assert any(m.startswith("x-ai/") for m in bundle_ids)
         assert any(m.startswith("openai/") for m in bundle_ids)
         assert any(m.startswith("google/") for m in bundle_ids)
