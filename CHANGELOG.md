@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **docs:** **A new feature now owes `README.md` a bullet, and the change cycle
+  says so.** [`CHANGE_CYCLE.md`](CHANGE_CYCLE.md) step 7 gains an explicit gate
+  next to step 3's "does this need a test": decide whether the change adds (or
+  removes) something a user can name, and answer it in the report's new
+  `README:` line — the bullet you added, or "no README change" with the reason.
+  It is the one documentation duty nothing in CI can fail for you, so it is
+  asked rather than assumed: the suite stays green all the way to a feature
+  nobody can discover. The step also writes down the shape `README.md` keeps —
+  a short description of the repo, the fork's goals, and the **exhaustive**
+  leading bullet list of what it adds over upstream — and says to edit that list
+  **first**, before the prose, the TOC, or FORK.md, on the grounds that a
+  one-line promise you cannot write is a feature that is not finished.
+  `backend/tests/test_change_cycle_doc.py` pins both halves: the gate in the
+  cycle, and the two landmarks in `README.md` the gate points at, so rewriting
+  the opening blockquote can no longer leave the instruction aiming at nothing.
+
 - **models:** **Model audit, 2026-09-05 — no price or roster change, three
   documentation drifts fixed.** Anthropic re-verified against its own pricing
   page (all six entries, both synced sources, including Fable 5.1's `0.025x`

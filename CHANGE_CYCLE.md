@@ -12,7 +12,8 @@ repository — never to confirm that the next step should happen.
 needs to catch it breaking, and write them → add the matching rows to FORK.md's
 checklist and delete the rows that no longer prove anything → run the whole list,
 including the tests you just added → run the model audit **only if you were told
-to** → land the docs → commit, push, and **open the pull request**. The cycle is
+to** → land the docs, and a **new feature owes `README.md` its bullet** → commit,
+push, and **open the pull request**. The cycle is
 not finished when the tests pass; it is finished when the PR is open. Nobody has
 to ask for that PR separately — it is step 9, not a follow-up request.
 
@@ -200,6 +201,49 @@ what an agent must know before editing the code, and one `### Added` bullet
 under `## [Unreleased]` in `CHANGELOG.md`. Any new config key also bumps
 `config_version` and **both** chart copies.
 
+### Does the change add a feature? Then it owes `README.md`
+
+Ask it explicitly, the way step 3 asks about tests, and answer it in the report.
+**Yes** when the change gives a user something they could not do before, or could
+do only by hand: a new page, panel, button, setting, config key, tool, backend,
+model source, or command — and equally when it *removes* one, because the list
+below is a promise about what is there today. **No** for a fix that restores
+intended behavior, an internal refactor, or a performance change nobody can name
+from the outside. Say "no README change, <reason>" rather than leaving it
+unstated. This is the one documentation duty nothing in CI can fail for you: a
+feature that ships without its README line is a feature nobody discovers, and the
+suite stays green the whole way.
+
+**Start with the bullet points.** Before the prose, before the TOC, before
+FORK.md — write the bullet. The leading list inside the blockquote at the top of
+`README.md` ("On top of upstream, it adds — out of the box:") is the fork's shop
+window, deliberately **exhaustive**: every upgrade this fork has over
+[upstream](https://github.com/bytedance/deer-flow) gets one line, with its own
+emoji, in the same change set that adds it. Two or three sentences that lead with
+what a user *gets*, name the behavior they would not expect, and say what it costs
+to switch on (a config key, a daemon setting, nothing). Writing it first is not
+ceremony: if the one-line promise is hard to write, the feature is not finished,
+and the deeper section is easier once it exists. A removed feature loses its
+bullet in the same change set, the way it loses its checklist row in step 4.
+
+Those bullets sit inside the three things `README.md` has to keep, whatever else
+changes around them:
+
+- **A short description of the repo** — what DeerFlow is, in a few sentences a
+  newcomer reads without scrolling.
+- **Its goals** — what this fork is *for* (a private, self-hosted personal AI you
+  reach over your own network, cheap to run, yours), so a reader can tell whether
+  a proposed change belongs here at all.
+- **The bullet list of what it adds over upstream** — exhaustive, one bullet per
+  feature, and the part you edit first.
+
+Only then the depth: a `###` subsection under **Core Features** (or a top-level
+`##` for something that is not a core-agent behavior), plus its anchor in the
+hand-maintained Table of Contents — a section missing from the TOC is a section
+nobody browses to. FORK.md's [Adding a new fork
+feature](FORK.md#adding-a-new-fork-feature--what-to-write-and-where) owns what
+belongs inside that subsection.
+
 ## 8. Format, commit, push
 
 ```bash
@@ -242,6 +286,7 @@ Last thing you output, in this shape:
 ```text
 Change:           <the one sentence from step 1>
 Tests added:      <paths, or "none — <reason>">
+README:           <the bullet added or edited, or "no README change — <reason>">
 Rows added:       <FORK.md rows>
 Rows removed:     <rows, and why they went obsolete>
 Full list:        <pass | pass except <check> (environmental, evidence: …)>

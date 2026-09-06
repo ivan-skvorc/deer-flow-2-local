@@ -24,8 +24,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHANGE_CYCLE = REPO_ROOT / "CHANGE_CYCLE.md"
 FORK_MD = REPO_ROOT / "FORK.md"
 ROOT_AGENTS = REPO_ROOT / "AGENTS.md"
+README = REPO_ROOT / "README.md"
 
 TRIGGER = "run the code change cycle from CHANGE_CYCLE.md"
+# The sentence that introduces README.md's leading bullet list — the fork's shop
+# window, and the thing CHANGE_CYCLE.md step 7 sends every new feature to.
+SHOP_WINDOW_LEAD = "On top of upstream, it adds"
 
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)\s]+)\)")
 HEADING_RE = re.compile(r"^#{1,6}\s+(.*?)\s*$", re.MULTILINE)
@@ -111,3 +115,38 @@ def test_the_entry_point_is_reachable_from_the_guidance_an_agent_reads_first() -
     """
     assert "CHANGE_CYCLE.md" in ROOT_AGENTS.read_text(encoding="utf-8")
     assert "CHANGE_CYCLE.md" in FORK_MD.read_text(encoding="utf-8")
+
+
+def test_the_cycle_asks_whether_the_change_is_a_feature_and_owes_the_readme() -> None:
+    """The documentation duty CI cannot fail for you.
+
+    Every other gate in the cycle has a machine behind it: a missing test shows
+    up red, a stale checklist row shows up in the next sync PR, an unbumped
+    `config_version` shows up in `validate-chart`. A feature that never reaches
+    README.md shows up as nothing — the suite is green, the diff is clean, and
+    the feature is simply undiscoverable. So the question has to be asked in
+    prose, in the step, the same way step 3 asks about tests.
+    """
+    text = CHANGE_CYCLE.read_text(encoding="utf-8")
+
+    assert re.search(r"^###\s+.*\bREADME\.md\b.*$", text, re.MULTILINE), "CHANGE_CYCLE.md step 7 lost the sub-step that asks whether the change is a feature and sends it to README.md"
+    assert "README:" in text, "the report shape stopped asking what happened to README.md, which is how a reader tells a landed bullet from an intended one"
+
+
+def test_the_readme_still_has_the_shape_the_cycle_sends_a_feature_to() -> None:
+    """Step 7 names a specific place in a specific file; this is that place.
+
+    The instruction is worth exactly as much as the list it points at. Rewrite
+    README.md's opening blockquote — drop the fork description, re-title the
+    bullet list, flatten it out of the quote — and the step still renders,
+    still reads sensibly, and lands the next feature nowhere. Pinned by the two
+    landmarks the step actually names, not by the prose between them, so the
+    copy stays free to change.
+    """
+    readme = README.read_text(encoding="utf-8")
+
+    assert SHOP_WINDOW_LEAD in readme, f"README.md no longer introduces its leading bullet list with {SHOP_WINDOW_LEAD!r}; CHANGE_CYCLE.md step 7 points at a list that is gone"
+
+    lead = readme.index(SHOP_WINDOW_LEAD)
+    assert "fork of [bytedance/deer-flow]" in readme[:lead], "the short description of the repo that opens README.md above the bullet list is gone"
+    assert readme.count("\n> - ", lead) >= 10, "README.md's leading list is no longer a blockquote bullet list of what the fork adds over upstream"
