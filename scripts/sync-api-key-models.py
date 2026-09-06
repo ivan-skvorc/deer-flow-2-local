@@ -19,8 +19,8 @@ by that lab's own key, mirroring how Anthropic is handled — the lab's full lin
 on its direct API, so its flagship is reachable through both the home API and
 OpenRouter:
 
-    OPENAI_API_KEY     -> GPT-5.6 Sol / GPT-5.3 Codex / GPT-5.6 Terra /
-                          GPT-5.6 Luna (OpenAI)
+    OPENAI_API_KEY     -> GPT-6 Astra / GPT-5.6 Sol / GPT-5.3 Codex /
+                          GPT-5.6 Terra / GPT-5.6 Luna (OpenAI)
     XAI_API_KEY        -> Grok 4.6 / Grok 4.3 (xAI)
     GEMINI_API_KEY     -> Gemini 3.6 Flash / 3.5 Flash-Lite / 3.1 Pro (Google)
     DEEPSEEK_API_KEY   -> DeepSeek V4 Pro / V4 Flash (DeepSeek)

@@ -11,6 +11,57 @@ Newest first. Append a pass; never rewrite one. A dated line is what tells the
 next person whether the roster was checked last week or last year, and _which_
 providers that pass could actually reach.
 
+- **2026-09-06 (second pass, same change-cycle run) — the doubling rule gains two named
+  exceptions, and the roster grows by three: Opus 5 routed, GPT-6 Astra routed and direct.**
+  Requested in words by the maintainer after reading the earlier pass. This one **changes both
+  synced sources**, so it is a roster edit, not just a reading.
+
+  **The rule that changed.** Step 3 used to say a lab is doubled by putting *its flagship* on
+  OpenRouter. It now says that, plus: **Anthropic routes Fable 5.1 _and_ Opus 5, OpenAI routes
+  GPT-6 Astra _and_ GPT-5.6 Sol.** The argument is the shape of those two labs' top tier — it is
+  really two models a factor of two apart (`$10/$50` beside `$5/$25`, `$10/$50` beside `$5/$30`)
+  — and either half alone fails an OpenRouter-only user invisibly: route only the dearer and
+  every routed task bills at roughly twice what the cheaper sibling would have charged for most
+  of it, route only the cheaper and the lab's best model is simply unreachable on that key. This
+  is an exception about the *shape of a lab's top tier*, not a licence to route two of
+  everything; a third entry in either pair needs the argument made again.
+  `TestFirstPartyKeyCoverage::test_the_paired_labs_route_both_halves` and
+  `test_a_paired_lab_routes_both_halves_from_its_own_home_block` pin both pairs by slug, so a
+  roll-forward that upgrades one half and forgets the other fails loudly. The same edit records
+  what was already true and undocumented: the routed slot need **not** be a flagship — Google
+  routes Gemini 3.6 Flash and OpenAI also routes GPT-5.3 Codex under step 2's *acclaimed smaller
+  sibling* rule, which stops being an anomaly the log keeps re-noting.
+
+  **Claude Opus 5 on OpenRouter — price tier 1, slug tier 2.** `$5/$25` was read off Anthropic's
+  own pricing table in the pass above, today, and OpenRouter passes the lab's list rate through
+  (the existing Fable entry carries Anthropic's `$10/$50` unchanged). The slug
+  `anthropic/claude-opus-5` is **corroborated, not verified**: OpenRouter is still refused at the
+  egress proxy, so it comes from OpenRouter's own model page surfacing in search plus a second
+  independent write-up. A wrong slug fails loudly at request time, which is why the weaker tier
+  is acceptable here and would not be for the price.
+
+  **GPT-6 Astra — added, which reverses the decline recorded twice, including in the pass
+  directly above.** Both earlier passes declined it on **availability, not merit**: the rollout
+  reaches a limited set of organizations, and sources today still say it is not generally
+  available. That objection was raised in the report and the maintainer asked for it anyway, so
+  it ships — but the reason it was declined has not gone away, and it is written here rather
+  than lost: **an `OPENAI_API_KEY` whose organization is not yet in the rollout will fail at
+  request time on `openai-gpt-6-astra`**, which reads as a broken config rather than a
+  not-yet-enabled model. The routed copy (`openai/gpt-6-astra`) is the safer of the two, since
+  OpenRouter brokers access. Price `$10/$50` corroborated from several independent sources that
+  agree exactly on both numbers; the long-context tier above 272K input (`$20/$75`) is **not**
+  modelled, consistent with how the bundle treats Grok 4.6's ≥200K tier — `price:` carries the
+  base rate. The next pass that can reach OpenAI's own page should confirm both the rate and
+  general availability, and drop the entry if GA has been abandoned.
+
+  **Structure:** 41 → **44** bundled paid models, every one still carrying a `price:` block; 11
+  marker blocks, unchanged. `scripts/audit_models.py` re-run after the edit — no drift, no price
+  in any `display_name`, the two synced sources agree. `sync-api-key-models.py --dry-run` still
+  a clean no-op. The five prose copies that no test reads were updated with the entries
+  (`config.example.yaml`'s QUICK START, `providers.py`'s two `description=` strings, the sync
+  script's docstring, `README.md`'s key bullet) and `.env.example`'s OpenAI comment, which
+  `test_env_example_names_the_models_each_home_key_actually_enables` does read.
+
 - **2026-09-06 (requested inside a change-cycle run that did not touch the bundle) — Anthropic
   re-verified at tier 1; no roster or price change; one genuinely new candidate (Gemini 3.8
   Flash) and two leads from 2026-09-05 re-checked and both still declined.** The pass was asked
