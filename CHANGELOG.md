@@ -607,6 +607,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sidebar:** **The button that creates a chat folder says "New folder" now,
+  instead of being a bare `+`.** Moving it next to the "Recent chats" heading
+  (below) fixed where it was without fixing whether anyone could see it: what
+  landed there was a borderless 16px glyph touching a 12px muted label, which
+  reads as part of the title rather than as something to press. An icon is a
+  shorthand for readers who already know the feature — and this button is how
+  they were supposed to find out folders exist at all, so it was legible only
+  to people who did not need it. It is now a bordered control carrying the
+  words, and the words are **rendered**, not parked in an `sr-only` span: a
+  clipped one-pixel label satisfies every text assertion in the suite while
+  showing the reader nothing, so `sidebar-chat-folders.spec.ts` measures the
+  control's box — an icon on its own cannot be 48px wide. The heading truncates
+  before the button does; the drag, the row menu's **Move to folder ▸ New
+  folder**, and every folder it has already made are untouched.
+
 - **sidebar:** **The button that creates a chat folder now sits beside the
   "Recent chats" heading, and exists before the first conversation does.** It
   was a borderless 16px icon pinned to the far right edge of the sidebar —
