@@ -118,8 +118,9 @@ function buildBranchList(threads: readonly AgentThread[]): BranchList {
  *
  * A create carries the conversation it was opened for, when it was opened from
  * a chat's **Move to folder ▸ New folder**: that entry reads as one action, so
- * the chat has to land in the folder the user just named. Opened from the `+`
- * in the group header there is no chat to file, and `threadId` is absent.
+ * the chat has to land in the folder the user just named. Opened from the
+ * **New folder** button in the group header there is no chat to file, and
+ * `threadId` is absent.
  */
 type FolderDialogState =
   | { mode: "create"; threadId?: string }
@@ -701,25 +702,31 @@ export function RecentChatList() {
   );
 
   // The group renders even with nothing under it. It is the only way into the
-  // feature — the `+` that creates a folder lives in this header — and a
-  // workspace with no conversations yet is exactly where someone goes looking
-  // for it. Returning null here made the control unreachable until a chat
-  // existed, and took a just-created empty folder down with it.
+  // feature — the **New folder** button lives in this header — and a workspace
+  // with no conversations yet is exactly where someone goes looking for it.
+  // Returning null here made the control unreachable until a chat existed, and
+  // took a just-created empty folder down with it.
   const isStaticWebsite = env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true";
   return (
     <>
       <SidebarGroup>
         <SidebarGroupLabel className="gap-1">
-          <span data-testid="recent-chats-label">
+          <span className="truncate" data-testid="recent-chats-label">
             {!isStaticWebsite ? t.sidebar.recentChats : t.sidebar.demoChats}
           </span>
-          {/* Beside the words, not pinned to the far edge of the sidebar: this
-              is the only entry point to folders, and as an unlabelled icon a
-              sidebar-width away from its own heading it read as chrome and was
-              never found. */}
+          {/* Beside the words, and it says what it does in words of its own.
+              Two earlier passes at this control were still invisible in
+              practice: at the sidebar's right edge it read as chrome, and
+              moved next to the heading it was a 16px glyph touching a 12px
+              muted label — decoration on a title, not an invitation to click.
+              An icon is only a shorthand for readers who already know the
+              feature exists, and this button *is* how they find out it does,
+              so it carries its label and a border that makes it a button on
+              sight. `shrink-0` keeps it whole and lets the heading truncate:
+              the control is the part that must survive a narrow sidebar. */}
           {!isStaticWebsite && (
             <button
-              className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground ring-sidebar-ring flex size-5 shrink-0 items-center justify-center rounded-md outline-hidden transition-colors focus-visible:ring-2"
+              className="text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-sidebar-border ring-sidebar-ring flex h-5 shrink-0 items-center gap-1 rounded-md border px-1.5 text-[11px] font-medium outline-hidden transition-colors focus-visible:ring-2"
               data-testid="chat-folder-create"
               onClick={() => {
                 setFolderNameValue("");
@@ -728,8 +735,8 @@ export function RecentChatList() {
               title={t.chats.folders.new}
               type="button"
             >
-              <FolderPlus className="size-4" />
-              <span className="sr-only">{t.chats.folders.new}</span>
+              <FolderPlus className="size-3.5 shrink-0" />
+              <span>{t.chats.folders.new}</span>
             </button>
           )}
         </SidebarGroupLabel>

@@ -105,6 +105,32 @@ test.describe("Sidebar chat folders", () => {
     expect(centreOffset).toBeLessThan(4);
   });
 
+  // Beside the heading and still unfindable: moving the control next to the
+  // words left a borderless 16px glyph touching a 12px muted label, which reads
+  // as part of the title rather than as something to press — the reader has to
+  // already know folders exist to recognise it. So the control says what it
+  // does, and the property is that the words are *rendered*, not merely present
+  // for a screen reader: an `sr-only` span is clipped to a pixel and satisfies
+  // any text assertion, so measure the box instead. A labelled control has to
+  // be wide enough to hold its word; an icon on its own cannot reach 48px.
+  test("the new-folder control is labelled, not a bare icon", async ({
+    page,
+  }) => {
+    mockLangGraphAPI(page, { threads: THREADS });
+    await page.goto("/workspace/chats/new");
+    await expect(chatRow(page, FIRST_THREAD_ID)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const button = page.getByTestId("chat-folder-create");
+    await expect(button).toHaveText("New folder");
+    const buttonBox = await button.boundingBox();
+    if (!buttonBox) {
+      throw new Error("the create button has no box");
+    }
+    expect(buttonBox.width).toBeGreaterThan(48);
+  });
+
   // The group used to render nothing at all until a conversation existed, so
   // the one control that creates a folder was missing on exactly the workspace
   // where someone would first go looking for it.
